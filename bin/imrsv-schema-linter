@@ -4,7 +4,11 @@
 TODO
 '''
 
+from contextlib import redirect_stdout
 from typing import List
+from sys import stdout
+from os import isatty
+import subprocess
 import argparse
 
 import psycopg2
@@ -31,6 +35,17 @@ argument_parser.add_argument(
 )
 
 
+def page_results(results: List[RuleResult]) -> None:
+    if isatty(stdout.fileno()):
+        with subprocess.Popen(['less', '-FRXS'],
+                              stdin=subprocess.PIPE,
+                              universal_newlines=True) as less:
+            with redirect_stdout(less.stdin):
+                show_results(results)
+    else:
+        show_results(results)
+
+
 def show_results(results: List[RuleResult]) -> None:
     if args.format == 'print':
         for result in results:
@@ -44,7 +59,7 @@ def main(args: argparse.Namespace) -> None:
     logger.setLevel(args.log_level.value)
     with psycopg2.connect(args.url) as connection:
         with connection.cursor() as cursor:
-            show_results(apply_rules(cursor))
+            page_results(apply_rules(cursor))
 
 
 if __name__ == '__main__':
