@@ -1,0 +1,417 @@
+# See also:
+# - https://wiki.postgresql.org/wiki/Don't_Do_This
+# - https://www.schemacrawler.com/lint.html
+#
+# Code linting:
+# - https://docs.sqlfluff.com/en/stable/rules.html
+# - https://github.com/kristiandupont/schemalint/tree/master/src/rules
+#
+# All PKed
+# No rules
+# No inheritance
+# Redundant ID in join table
+# Default now
+# Default CURRENT_TIME
+# Serial  (cannot check?)
+# name        | password_encryption
+# setting     | scram-sha-256
+# description | Chooses the algorithm for encrypting passwords.
+#
+# api=# select * from pg_catalog.pg_hba_file_rules ;
+#  line_number | type  |   database    | user_name |  address  |                 netmask                 |  auth_method  | options | error
+# -------------+-------+---------------+-----------+-----------+-----------------------------------------+---------------+---------+-------
+#           88 | local | {all}         | {all}     |           |                                         | trust         |         |
+#           90 | host  | {all}         | {all}     | 127.0.0.1 | 255.255.255.255                         | scram-sha-256 |         |
+#           92 | host  | {all}         | {all}     | ::1       | ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff | scram-sha-256 |         |
+#           95 | local | {replication} | {all}     |           |                                         | trust         |         |
+#           96 | host  | {replication} | {all}     | 127.0.0.1 | 255.255.255.255                         | scram-sha-256 |         |
+#           97 | host  | {replication} | {all}     | ::1       | ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff | scram-sha-256 |         |
+#           99 | host  | {all}         | {all}     | all       |                                         | scram-sha-256 |         |
+# (7 rows)
+
+
+rules:
+  server-encoding:
+    severity: error
+    title: Non-UTF8 server encoding
+    comment: |
+      https://wiki.postgresql.org/wiki/Don't_Do_This#Don.27t_use_SQL_ASCII
+    query: |
+      SELECT *
+      FROM pg_settings
+      WHERE name = 'server_encoding' AND
+            NOT setting LIKE 'UTF8%'
+
+  uncommented-columns:
+    severity: notice
+    title: Columns without a COMMENT (description)
+    query: |
+      SELECT st.relname AS table_name,
+             c.column_name,
+             pgd.description
+      FROM pg_catalog.pg_statio_all_tables
+          AS st
+      INNER JOIN information_schema.columns
+          AS c
+          ON c.table_schema = st.schemaname AND
+             c.table_name = st.relname AND
+             c.table_schema = 'public'
+      LEFT OUTER JOIN pg_catalog.pg_description
+          AS pgd
+          ON pgd.objoid = st.relid AND
+             pgd.objsubid = c.ordinal_position
+      WHERE nullif(btrim(pgd.description), '') IS NULL
+      ORDER BY st.relname, c.ordinal_position
+
+  commented-columns:
+    severity: info
+    title: Each column's COMMENT (description)
+    query: |
+      SELECT st.relname AS table_name,
+            c.column_name,
+            pgd.description
+      FROM pg_catalog.pg_statio_all_tables
+          AS st
+      INNER JOIN information_schema.columns
+          AS c
+          ON c.table_schema = st.schemaname AND
+            c.table_name = st.relname AND
+            c.table_schema = 'public'
+      LEFT OUTER JOIN pg_catalog.pg_description
+          AS pgd
+          ON pgd.objoid = st.relid AND
+            pgd.objsubid = c.ordinal_position
+      ORDER BY st.relname, c.ordinal_position
+
+  #redundant-indicies:
+  #  severity: warning
+  #  query: TODO
+
+  #redundant-uniques:
+  #  severity: warning
+  #  query: TODO
+
+  column-counts:
+    severity: info
+    title: Number of columns in each table
+    comment: |
+      If you have many, your table is unwieldy for UPDATEs (especially if only
+      updating a few columns), there's a lot of per-row overhead in the NULL
+      bitmask, and in general, it's a bit harder to understand.
+    query: |
+      SELECT table_name, count(*)
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND
+            table_catalog = 'api'
+      GROUP BY table_name
+      ORDER BY table_name
+
+  imagined-id-defaults:
+    severity: warning
+    title: Imagined ID columns that have a default value
+    comment: |
+      IDs SHOULD NOT have default values, whether primary keys or foreign keys
+      (enforced or not).
+    query: |
+      SELECT table_name, column_name, column_default, is_nullable, data_type
+      FROM information_schema.columns
+      WHERE column_name LIKE '%\_id' AND
+            column_default IS NOT NULL
+      ORDER BY table_name, column_name
+
+  nullable-defaults:
+    severity: error
+    title: NULLable columns with default values
+    comment: |
+      Either you should be NULLable and have no default value,
+      or you should have a default value and not be NULLable.
+      If you do anything else, you probably have a bad type or relation design.
+    query: |
+      SELECT table_name, column_name, data_type, column_default
+      FROM information_schema.columns
+      WHERE is_nullable = 'YES' AND
+            column_default IS NOT NULL
+      ORDER BY table_name, column_name
+
+  # Not typical. Really onl seen in two 3rd party projects.
+  unenforced-foreign-keys:
+    severity: error
+    title: Imagined FK columns, and maybe their polymorphic type column
+    comment: |
+      What the heck. Seriously‽ It's NOT debatable whether to enforce foreign keys.
+      It completely misses the point to not enforce. “Relational” DB much?
+      Always.
+      And you cannot do app-side concurrency. Don't even try.
+      You are in all likelihood not qualified to do it performantly or correctly.
+      It takes years and the right training, exposure, and literature to be so.
+      And yes, polymorphic associations can have referential integrity,
+      even if they have different sequences.
+    query: |
+      SELECT columns.table_name,
+            columns.column_name,
+            type_columns.column_name AS type_column,
+            columns.is_nullable,
+            columns.column_default
+      FROM information_schema.columns
+      LEFT OUTER JOIN information_schema.key_column_usage
+          ON columns.column_name = key_column_usage.column_name
+      LEFT OUTER JOIN information_schema.columns
+          AS type_columns
+          ON (columns.table_schema,
+              columns.table_name,
+              regexp_replace(columns.column_name, '_id$', '_type')) =
+            (type_columns.table_schema,
+              type_columns.table_name,
+              type_columns.column_name)
+      WHERE columns.table_schema = 'public' AND
+            columns.column_name LIKE '%\_id' AND
+            key_column_usage.column_name IS NULL
+      ORDER BY columns.table_name, columns.column_name
+
+  non-unique-foreign-keys:
+    severity: warning
+    title: Real or imagined FK columns that not in a UNIQUE constraint
+    query: |
+      SELECT columns.table_name,
+             columns.column_name
+      FROM information_schema.columns
+      LEFT OUTER JOIN information_schema.key_column_usage
+          ON columns.column_name = key_column_usage.column_name
+      LEFT OUTER JOIN information_schema.columns
+          AS type_columns
+          ON (columns.table_schema,
+              columns.table_name,
+              regexp_replace(columns.column_name, '_id$', '_type')) =
+             (type_columns.table_schema,
+              type_columns.table_name,
+              type_columns.column_name)
+      LEFT OUTER JOIN information_schema.constraint_column_usage
+          ON (columns.table_schema,
+              columns.table_name,
+              columns.column_name) =
+             (constraint_column_usage.table_schema,
+              constraint_column_usage.table_name,
+              constraint_column_usage.column_name)
+      WHERE columns.table_schema = 'public' AND
+            (columns.column_name LIKE '%\_id' OR
+             key_column_usage.position_in_unique_constraint IS NOT NULL)
+      GROUP BY columns.table_name, columns.column_name
+      HAVING count(constraint_column_usage.constraint_name) = 0
+      ORDER BY columns.table_name, columns.column_name
+
+  multicolumn-indexes:
+    severity: info
+    title: Multicolumn indexes, their columns, and their stats
+    comment: |
+      Gotta inspect that index column order for appropriateness to usage.
+      Purely sequential scans with a large enough dataset can be an
+      indication of bad column order. See article on “Use the Index Luke”.
+      Even nonzero index scan count can still mean the order is suboptimal,
+      and that you're not optimising for the right case.
+      You have to consider though if you change the order overall if the app
+      performance is sufficient.
+    query: |
+      SELECT table_class.relname AS table_name,
+             index_class.relname AS index_name,
+             array_agg(pg_attribute.attname ORDER BY pg_index.indkey) AS columns,
+             min(seq_scan) AS seq_scan,
+             min(seq_tup_read) AS seq_tup_read,
+             min(idx_scan) AS idx_scan,
+             min(idx_tup_fetch) AS idx_tup_fetch
+      FROM pg_index
+      INNER JOIN pg_class
+          AS table_class
+          ON table_class.oid = pg_index.indrelid
+      INNER JOIN pg_class
+          AS index_class
+          ON index_class.oid = pg_index.indexrelid
+      INNER JOIN pg_attribute
+          ON pg_attribute.attrelid = table_class.oid AND
+             pg_attribute.attnum = ANY(pg_index.indkey)
+      INNER JOIN pg_namespace
+          ON table_class.relnamespace = pg_namespace.oid
+      INNER JOIN pg_stat_user_tables
+          ON pg_stat_user_tables.relid = table_class.oid
+      WHERE pg_namespace.nspname = 'public'
+      GROUP BY table_name, index_name
+      HAVING count(*) > 1
+      ORDER BY table_name, index_name
+
+  unused-indexes:
+    severity: warning
+    group: runtime.performance
+    title: Never used indexes
+    query: |
+      SELECT relname, indexrelname
+      FROM pg_stat_user_indexes
+      WHERE idx_scan = 0 AND idx_tup_read = 0 AND idx_tup_fetch = 0 AND schemaname = 'public'
+      ORDER BY relname, indexrelname
+
+  forbidden-types:
+    severity: error
+    title: Forbidden data types
+    comment: |
+      In particular:
+
+      - https://wiki.postgresql.org/wiki/Don't_Do_This#Don.27t_use_char.28n.29_even_for_fixed-length_identifiers
+      - https://wiki.postgresql.org/wiki/Don't_Do_This#Don.27t_use_money
+      - https://wiki.postgresql.org/wiki/Don't_Do_This#Don.27t_use_timestamp_.28without_time_zone.29
+      - https://wiki.postgresql.org/wiki/Don't_Do_This#Don.27t_use_timestamp_.28without_time_zone.29_to_store_UTC_times
+      - https://wiki.postgresql.org/wiki/Don't_Do_This#Don.27t_use_timetz
+      - https://wiki.postgresql.org/wiki/Don't_Do_This#Don.27t_use_timestamp.280.29_or_timestamptz.280.29
+    params:
+      data_types:
+        - character
+        - money
+        - time with time zone
+        - timestamp without time zone
+        #- character varying
+      data_types_extra: []
+      udt_names: []
+      data_types_not: []
+      udt_names_not: []
+    query: |
+      SELECT table_name, column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND
+            (data_type = ANY(%(data_types)s) OR
+             data_type = ANY(%(data_types_extra)s) OR
+             udt_name = ANY(%(udt_names)s)) AND
+            NOT (data_type = ANY(%(data_types_not)s) OR
+                 udt_name = ANY(%(udt_names_not)s))
+      ORDER BY table_name, column_name
+
+  warning-types:
+    severity: warning
+    title: Discouraged data types
+    comment: |
+      In particular:
+
+      - Unless preserving key order or redundant keys, JSONB is preferred over
+        JSON, and has been for a few major releases.
+      - Don't use internal PG types if possible.
+    params:
+      data_types:
+        - character varying
+        - ARRAY
+        - anyarray
+        - anyc
+        #- character varying
+      udt_names: []
+      data_types_not: []
+      udt_names_not: []
+      allow_pg_internal: false
+    query: |
+      SELECT table_name, column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND
+
+            (data_type = ANY(%(data_types)s) OR
+             udt_name = ANY(%(udt_names)s)) AND
+            NOT (data_type = ANY(%(data_types_not)s) OR
+                 udt_name = ANY(%(udt_names_not)s)) OR
+
+            NOT %(allow_pg_internal)s AND data_type LIKE 'pg_%%'
+      ORDER BY table_name, column_name
+
+  nullable-columns:
+    severity: error
+    title: Columns that are NULLable
+    params:
+      # E.g., ['table_with_external_data_lotsa_nulls']
+      tables: []
+      # E.g., ['updated_at'], which is a bad idea anyway.
+      columns: []
+      # E.g.,
+      #   - ['users', 'phone_number']
+      #   - ['one', 'more']
+      #   - ['table', 'column']
+      table_columns: []
+    query: |
+      SELECT table_name, column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND
+            is_nullable = 'YES' AND
+            NOT table_name = ANY(%(tables)s) AND
+            NOT (table_name, column_name) = ANY(%(table_columns)s) AND
+            NOT (table_name, column_name) = ANY(%(table_columns)s)
+      ORDER BY table_name, column_name
+
+  # TODO: Unused indexes, row size descriptive stats.
+
+  foreign-keys-with-defaults:
+    severity: error
+    title: FK columns with a default value
+    comment: |
+      Probably wrong or brittle, other than requiring seed data, assuming
+      hardcoded IDs in seed data, or that you use semantic keys.
+    query: |
+      SELECT columns.table_name,
+            columns.column_name,
+            columns.is_nullable,
+            columns.column_default
+      FROM information_schema.columns
+      INNER JOIN information_schema.key_column_usage
+          ON columns.column_name = key_column_usage.column_name AND
+            key_column_usage.position_in_unique_constraint IS NOT NULL
+      WHERE columns.table_schema = 'public' AND
+            columns.column_default IS NOT NULL
+      ORDER BY columns.table_name, columns.column_name
+
+  nullable-keys:
+    severity: warning
+    title: Foreign keys where at least one of either the referencing or referenced columns is nullable
+    comment: |
+      This isn't always bad, but we do want to check all of these cases.
+      There have definitely been some incorrect ones found this way.
+      Warn by default for now. Walk it back later.
+    query: |
+      SELECT min(kcu1.table_name) AS referencing_table,
+            array_agg(kcu1.column_name::text) AS referencing_columns,
+            min(kcu2.table_name) AS referenced_table,
+            array_agg(kcu2.column_name::text) AS referenced_columns,
+            rc.constraint_name AS constraint_name,
+            array_agg(referencing_columns.column_name) FILTER (WHERE referencing_columns.is_nullable = 'YES') AS referencing_nullable,
+            array_agg(referenced_columns.column_name) FILTER (WHERE referenced_columns.is_nullable = 'YES') AS referenced_nullable
+      FROM information_schema.key_column_usage
+        AS kcu1
+      INNER JOIN information_schema.referential_constraints
+        AS rc
+        ON kcu1.constraint_name = rc.constraint_name
+      INNER JOIN information_schema.key_column_usage
+        AS kcu2
+        ON rc.unique_constraint_name = kcu2.constraint_name
+      INNER JOIN information_schema.columns
+        AS referencing_columns
+        ON referencing_columns.table_name = kcu1.table_name AND
+          referencing_columns.column_name = kcu1.column_name
+      INNER JOIN information_schema.columns
+        AS referenced_columns
+        ON referenced_columns.table_name = kcu2.table_name AND
+          referenced_columns.column_name = kcu2.column_name
+      GROUP BY rc.constraint_name
+      HAVING bool_or(referencing_columns.is_nullable = 'YES') OR
+            bool_or(referenced_columns.is_nullable = 'YES')
+      ORDER BY referencing_table, constraint_name
+
+  multicolumn-unique-nullable:
+    severity: warning
+    title: UNIQUE constraints where at least one of the columns is NULLable
+    comment: |
+      This can bad because you can have practical duplicates if any of these
+      columns is NULLable.
+    query: |
+      SELECT table_constraints.constraint_name,
+             array_agg(columns.column_name) AS nullable_columns
+      FROM information_schema.table_constraints
+      INNER JOIN information_schema.key_column_usage
+        ON table_constraints.constraint_name = key_column_usage.constraint_name
+      INNER JOIN information_schema.columns
+        ON key_column_usage.table_name = columns.table_name AND
+           key_column_usage.column_name = columns.column_name
+      WHERE constraint_type = 'UNIQUE' AND
+            is_nullable = 'YES'
+      GROUP BY table_constraints.table_name,
+               table_constraints.constraint_name
+      ORDER BY table_constraints.table_name,
+               table_constraints.constraint_name

@@ -1,0 +1,7 @@
+venv
+htmlcov
+.coverage
+*.egg-info
+*.py[co]
+__pycache__
+.schema_linter.yaml
