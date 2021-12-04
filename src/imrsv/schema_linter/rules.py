@@ -4,15 +4,16 @@ from typing import Iterable, List, Tuple, NamedTuple, Optional, Union
 from pathlib import Path
 from enum import Enum
 import importlib.resources
-import argparse
 import logging
 
 import psycopg2.extensions
 import psycopg2
 import yaml
 
+from . import logger
 
-logger = logging.getLogger(__name__)
+
+# TODO: Merge. Just use adobe/himl?
 builtin_rules = yaml.safe_load(importlib.resources.read_text(
     'imrsv.schema_linter', 'builtin_rules.yaml'
 ))
@@ -92,24 +93,6 @@ def apply_rule(cursor: psycopg2.extensions.cursor,
         )
 
 
-argument_parser = argparse.ArgumentParser(
-    description=__doc__,
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-)
-argument_parser.add_argument(
-    '-u', '--url', default='postgresql://',
-    help='libpq-compatible DSN or URL per v14 § 34.1.1 Connection Strings',
-)
-argument_parser.add_argument(
-    '-f', '--format',
-    default='print', choices=('print', 'logfmt'),  # TODO: 'json'
-)
-argument_parser.add_argument(
-    '-l', '--log-level',
-    default='warning', type=Severity.__getitem__,
-)
-
-
 # Extract
 def apply_rules(cursor: psycopg2.extensions.cursor) -> List[RuleResult]:
     return [results
@@ -120,31 +103,6 @@ def apply_rules(cursor: psycopg2.extensions.cursor) -> List[RuleResult]:
             if results is not None]
 
 
-def show_results(results: List[RuleResult]) -> None:
-    if args.format == 'print':
-        for result in results:
-            result.print()
-    elif args.format == 'logfmt':
-        for result in results:
-            result.log()
-
-
-def main(args: argparse.Namespace) -> None:
-    logger.setLevel(args.log_level.value)
-    with psycopg2.connect(args.url) as connection:
-        with connection.cursor() as cursor:
-            show_results(apply_rules(cursor))
-
-
-# TODO: Merge. Just use adobe/himl?
-# TODO: Send INFO and below to stdout, not stderr.
-
-
-if __name__ == '__main__':
-    args = argument_parser.parse_args()
-    main(args)
-
-
 __all__ = (
-    'main', 'argument_parser',
+    'Severity', 'RuleResult', 'apply_rules',
 )

@@ -1,0 +1,52 @@
+#! /usr/bin/env python3
+
+'''
+TODO
+'''
+
+from typing import List
+import argparse
+
+import psycopg2
+
+from imrsv.schema_linter.rules import Severity, RuleResult, apply_rules
+from imrsv.schema_linter import logger
+
+
+argument_parser = argparse.ArgumentParser(
+    description=__doc__,
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+)
+argument_parser.add_argument(
+    '-u', '--url', default='postgresql://',
+    help='libpq-compatible DSN or URL per v14 § 34.1.1 Connection Strings',
+)
+argument_parser.add_argument(
+    '-f', '--format',
+    default='print', choices=('print', 'logfmt'),  # TODO: 'json'
+)
+argument_parser.add_argument(
+    '-l', '--log-level',
+    default='warning', type=Severity.__getitem__,
+)
+
+
+def show_results(results: List[RuleResult]) -> None:
+    if args.format == 'print':
+        for result in results:
+            result.print()
+    elif args.format == 'logfmt':
+        for result in results:
+            result.log()
+
+
+def main(args: argparse.Namespace) -> None:
+    logger.setLevel(args.log_level.value)
+    with psycopg2.connect(args.url) as connection:
+        with connection.cursor() as cursor:
+            show_results(apply_rules(cursor))
+
+
+if __name__ == '__main__':
+    args = argument_parser.parse_args()
+    main(args)
