@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-from typing import Iterable, List, Tuple, NamedTuple, Optional, Union
+from typing import Iterable, List, Dict, NamedTuple, Optional, Union
 from pathlib import Path
 from enum import Enum
 import importlib.resources
@@ -43,7 +43,7 @@ class RuleResult(NamedTuple):
     severity: Severity
     title: str
     comment: str
-    results: List[Tuple[str, ...]]
+    results: List[Dict[str, str]]
 
     def log(self) -> None:
         if logger.isEnabledFor(logging.INFO):
@@ -54,11 +54,16 @@ class RuleResult(NamedTuple):
             else:
                 logger.info('rule=%s title=%r',
                             self.rule, self.title)
+        fmt = 'level=%s rule=%s ' + ' '.join(
+            f'{k}=%r'
+            for k
+            in self.results[0]
+        )
         for result in self.results:
             # TODO: Proper logfmt.
             # TODO: DictCursor instead and sub in
-            logger.log(self.severity.value, 'level=%s rule=%s offender="%r"',
-                       self.severity.name, self.rule, result)
+            logger.log(self.severity.value, fmt,
+                       self.severity.name, self.rule, *result.values())
 
     # TODO: Pretty
     def print(self) -> None:
@@ -69,7 +74,7 @@ class RuleResult(NamedTuple):
                 for line in (self.comment or '').splitlines():
                     print('#', line.strip())
         for result in self.results:
-            print(self.severity.name[0].upper(), self.rule, *result)
+            print(self.severity.name[0].upper(), self.rule, *result.values())
 
 
 def convert_params(params: Union[list, dict]) -> Union[list, dict]:
@@ -83,13 +88,18 @@ def apply_rule(cursor: psycopg2.extensions.cursor,
                rule_id: str,
                rule: dict) -> Optional[RuleResult]:
     cursor.execute(rule['query'], rule.get('params'))
+    names = [name for name, *_ in cursor.description]
     if cursor.rowcount > 0:
         return RuleResult(
             rule=rule_id,
             severity=Severity[rule['severity']],
             title=rule['title'],
             comment=rule.get('comment'),
-            results=cursor.fetchall(),
+            results=[{name: cell
+                      for name, cell
+                      in zip(names, row)}
+                     for row
+                     in cursor.fetchall()],
         )
 
 
