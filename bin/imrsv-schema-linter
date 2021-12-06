@@ -31,7 +31,7 @@ argument_parser.add_argument(
 )
 argument_parser.add_argument(
     '-l', '--log-level',
-    default='warning', type=Severity.__getitem__,
+    default='warning', choices=Severity.__members__.keys(),
 )
 
 
@@ -56,7 +56,7 @@ def show_results(results: List[RuleResult]) -> None:
 
 
 def main(args: argparse.Namespace) -> None:
-    logger.setLevel(args.log_level.value)
+    logger.setLevel(Severity[args.log_level].value)
     with psycopg2.connect(args.url) as connection:
         with connection.cursor() as cursor:
             page_results(apply_rules(cursor))
