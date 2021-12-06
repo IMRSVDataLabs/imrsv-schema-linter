@@ -39,14 +39,14 @@ setup(
     #     'setuptools_scm',  # for git-based versioning
     # ],
     # use_scm_version=True,
-    # TODO: license='License :: Other/Proprietary License',
+    license='License :: MIT License',
     author='Alex Pilon',
     author_email='alex@imrsv.ai',
     description='The IMRSV-tailored PostgreSQL schema linter',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
-        # TODO: 'License :: Other/Proprietary License',
+        'License :: MIT License',
         'Programming Language :: Python :: 3',
         'Tools :: Software Development :: Quality Assurance',
         'Topic :: Database',
