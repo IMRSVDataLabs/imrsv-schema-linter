@@ -1,5 +1,9 @@
 - [ ] More rules:
     * [ ] No columns
+    * [ ] One column
+    * [ ] No surrogate PK
+    * [ ] PK not first
+    * [ ] Too many columns
     * [ ] Attribute-less join tables with a surrogate key
     * [X] All tables have a primary key
     * [X] No PG rules
@@ -16,6 +20,18 @@
         + [ ] The current database
         + [ ] Functions, procedures (yes, like a docstring)
         + [ ] The other types at the notice level.
+    * [ ] Duplicate relationships
+    * [ ] Disconnected table
+    * [ ] Unused UDT
+    * [ ] `column1`, `column2` or `spouse1_id`, `spouse2_id`
+    * [ ] Too many large objects
+    * [ ] Column names that require quoting
+    * [ ] All, all minus PK, or too many nullable
+    * [ ] Table cycles
+    * [ ] Self-referencing
+    * [ ] Inherently redundant indexes, of the same index type
+    * [ ] Unindexed tables
+    * [ ] Null as explicit default
 - [ ] User config files.
 - [ ] Generic schema/table/column filtering.
 - [ ] Properly handle schemas instead of assuming `public`.
