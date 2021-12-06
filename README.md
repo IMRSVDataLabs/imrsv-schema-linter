@@ -30,6 +30,10 @@ Does not relieve you of the burden of properly:
 - properly choosing data types
 - understanding concurrency
 - understanding PostgreSQL, knowing its featureset, and understanding its
-  performance characteristics
+  performance characteristics, such as it being copy-on-write or
+  heap-only-tuple updates
+
+The linter does not verify SQL code in any way, nor does it understand how, how
+often, and how much of which data in particular you access.
 
 [@pilona]: https://github.com/pilona "Alex Pilon"
