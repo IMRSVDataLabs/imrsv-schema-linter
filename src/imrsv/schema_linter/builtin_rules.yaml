@@ -316,7 +316,7 @@ rules:
       data_types_not: []
       udt_names_not: []
     query: |
-      SELECT table_name, column_name
+      SELECT table_name, column_name, data_type, udt_name
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
             (data_type = ANY(%(data_types)s) OR
@@ -347,7 +347,7 @@ rules:
       udt_names_not: []
       allow_pg_internal: false
     query: |
-      SELECT table_name, column_name
+      SELECT table_name, column_name, data_type, udt_name
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
 
