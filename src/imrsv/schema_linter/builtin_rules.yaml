@@ -6,16 +6,7 @@
 # - https://docs.sqlfluff.com/en/stable/rules.html
 # - https://github.com/kristiandupont/schemalint/tree/master/src/rules
 #
-# All PKed
-# No rules
-# No inheritance
 # Redundant ID in join table
-# Default now
-# Default CURRENT_TIME
-# Serial  (cannot check?)
-# name        | password_encryption
-# setting     | scram-sha-256
-# description | Chooses the algorithm for encrypting passwords.
 #
 # api=# select * from pg_catalog.pg_hba_file_rules ;
 #  line_number | type  |   database    | user_name |  address  |                 netmask                 |  auth_method  | options | error
@@ -31,6 +22,43 @@
 
 
 rules:
+  no-primary-key:
+    severity: warning
+    title: Tables without a primary key
+    query: |
+      SELECT DISTINCT table_schema, table_name
+      FROM information_schema.tables
+      WHERE table_schema <> 'information_schema' AND
+            table_schema NOT LIKE 'pg%' AND
+            table_type = 'BASE TABLE' -- Or <> 'VIEW'?
+      EXCEPT ALL
+      SELECT table_schema, table_name
+      FROM information_schema.table_constraints
+      WHERE constraint_type = 'PRIMARY KEY'
+      ORDER BY table_schema, table_name
+
+  no-pg-rules:
+    severity: warning
+    title: Use of PostgreSQL RULEs
+    query: |
+      SELECT schemaname, tablename, rulename
+      FROM pg_catalog.pg_rules
+      WHERE schemaname NOT LIKE 'pg%'
+      ORDER BY schemaname, tablename, rulename
+
+  no-pg-inheritance:
+    severity: warning
+    title: Use of PostgreSQL inheritance
+    query: |
+      SELECT parent_ns.nspname AS parent_ns, parent.relname AS parent,
+            child_ns.nspname AS child_ns, child.relname AS child
+      FROM pg_inherits
+      JOIN pg_class AS parent ON inhparent = parent.oid
+      JOIN pg_class AS child ON inhrelid = child.oid
+      JOIN pg_namespace AS parent_ns ON parent.relnamespace = parent_ns.oid
+      JOIN pg_namespace AS child_ns ON child.relnamespace = child_ns.oid
+      ORDER BY parent_ns.nspname, parent.relname, inhseqno;
+
   server-encoding:
     severity: error
     title: Non-UTF8 server encoding
@@ -42,6 +70,44 @@ rules:
       WHERE name = 'server_encoding' AND
             NOT setting LIKE 'UTF8%'
 
+  # See also:
+  # SELECT name, setting, boot_val, reset_val
+  # FROM pg_settings
+  # WHERE setting <> reset_val OR boot_val <> reset_val;
+  server-settings:
+    severity: error
+    title: Inarguably insufficient server settings
+    query: |
+      SELECT pg_settings.name, pg_settings.setting,
+             better.new AS better, reason
+      FROM pg_catalog.pg_settings
+      JOIN (VALUES ('password_encryption', 'md5', 'scram-sha-256',
+                    'Not cryptographically broken hash'),
+                   ('data_checksums', 'off', 'on', 'Data integrity'))
+        AS better(name, old, new, reason)
+        ON pg_settings.name = better.name AND pg_settings.setting = old
+      ORDER BY name
+
+  # TODO: Sub in as params intead of hardcoding, so that people can add more
+  # better defaults, but we'd have to use YAML extensions to cast to tuple so
+  # it subs in as the right syntax, or just always use tuples for all
+  # queries.
+  better-defaults:
+    severity: error
+    title: Columns that could have better defaults
+    query: |
+      SELECT table_schema, table_name, column_name, column_default, new AS better_default, reason
+      FROM information_schema.columns
+      JOIN (VALUES ('now()', 'CURRENT_TIMESTAMP', 'the former is PG-specific, the latter standard'),
+                   ('CURRENT_TIME', 'CURRENT_TIMESTAMP', 'the former is not zone-aware'),
+                   ('nextval(%', 'GENERATED ALWAYS AS IDENTITY',
+                    'the former is accidentally overrideable, not standard, annoying to manage (need to know the sequence name), etc.'))
+        AS betters(old, new, reason)
+        ON btrim(column_default) LIKE betters.old
+      WHERE table_schema = 'public'
+      ORDER BY 1, 2, 3, 4
+
+  # TODO: Not use pg_statio_all_tables.
   uncommented-columns:
     severity: notice
     title: Columns without a COMMENT (description)
