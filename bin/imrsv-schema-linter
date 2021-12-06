@@ -4,8 +4,8 @@
 TODO
 '''
 
-from contextlib import redirect_stdout
-from typing import List
+from contextlib import contextmanager, redirect_stdout
+from typing import List, Iterator
 from sys import stdout
 from os import isatty
 import subprocess
@@ -35,15 +35,16 @@ argument_parser.add_argument(
 )
 
 
-def page_results(results: List[RuleResult]) -> None:
+@contextmanager
+def autopage() -> Iterator[None]:
     if isatty(stdout.fileno()):
         with subprocess.Popen(['less', '-FRXS'],
                               stdin=subprocess.PIPE,
                               universal_newlines=True) as less:
             with redirect_stdout(less.stdin):
-                show_results(results)
+                yield
     else:
-        show_results(results)
+        yield
 
 
 def show_results(results: List[RuleResult]) -> None:
@@ -59,7 +60,8 @@ def main(args: argparse.Namespace) -> None:
     logger.setLevel(Severity[args.log_level].value)
     with psycopg2.connect(args.url) as connection:
         with connection.cursor() as cursor:
-            page_results(apply_rules(cursor))
+            with autopage():
+                show_results(args, apply_rules(cursor))
 
 
 if __name__ == '__main__':
