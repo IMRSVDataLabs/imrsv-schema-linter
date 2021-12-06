@@ -231,7 +231,7 @@ rules:
             column_default IS NOT NULL
       ORDER BY table_name, column_name
 
-  # Not typical. Really onl seen in two 3rd party projects.
+  # Not typical. Really only seen in two 3rd party projects.
   unenforced-foreign-keys:
     severity: error
     title: Imagined FK columns, and maybe their polymorphic type column
