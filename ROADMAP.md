@@ -7,7 +7,7 @@
     * [X] `DEFAULT now()`
     * [X] `DEFAULT CURRENT_TIME`
     * [X] `SERIAL`
-    * [ ] Non-generated primary key, even if UUID
+    * [X] Non-generated primary key, even if UUID
     * [X] `password_encryption` `scram-sha-256`
 - [ ] User config files
 - [ ] Generic schema/table/column filtering
