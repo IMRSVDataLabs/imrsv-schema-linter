@@ -113,8 +113,7 @@ rules:
     title: Columns without a COMMENT (description)
     query: |
       SELECT st.relname AS table_name,
-             c.column_name,
-             pgd.description
+             c.column_name
       FROM pg_catalog.pg_statio_all_tables
           AS st
       INNER JOIN information_schema.columns
