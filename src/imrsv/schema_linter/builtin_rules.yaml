@@ -129,26 +129,6 @@ rules:
       WHERE nullif(btrim(pgd.description), '') IS NULL
       ORDER BY st.relname, c.ordinal_position
 
-  commented-columns:
-    severity: info
-    title: Each column's COMMENT (description)
-    query: |
-      SELECT st.relname AS table_name,
-            c.column_name,
-            pgd.description
-      FROM pg_catalog.pg_statio_all_tables
-          AS st
-      INNER JOIN information_schema.columns
-          AS c
-          ON c.table_schema = st.schemaname AND
-            c.table_name = st.relname AND
-            c.table_schema = 'public'
-      LEFT OUTER JOIN pg_catalog.pg_description
-          AS pgd
-          ON pgd.objoid = st.relid AND
-            pgd.objsubid = c.ordinal_position
-      ORDER BY st.relname, c.ordinal_position
-
   #redundant-indicies:
   #  severity: warning
   #  query: TODO
