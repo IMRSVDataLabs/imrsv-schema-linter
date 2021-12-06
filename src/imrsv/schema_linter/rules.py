@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-from typing import Iterable, List, Dict, NamedTuple, Optional, Union
+from typing import Iterable, List, Dict, NamedTuple, Union, Tuple
 from pathlib import Path
 from enum import Enum
 import importlib.resources
@@ -9,8 +9,6 @@ import logging
 import psycopg2.extensions
 import psycopg2
 import yaml
-
-from . import logger
 
 
 # TODO: Merge. Just use adobe/himl?
@@ -43,38 +41,16 @@ class RuleResult(NamedTuple):
     severity: Severity
     title: str
     comment: str
-    results: List[Dict[str, str]]
+    offender: Dict[str, str]  # FIXME: Not actually str RHS
 
-    def log(self) -> None:
-        if logger.isEnabledFor(logging.INFO):
-            # FIXME: Not printing
-            if self.comment is not None:
-                logger.info('rule=%s title=%r comment=%r',
-                            self.rule, self.title, self.comment)
-            else:
-                logger.info('rule=%s title=%r',
-                            self.rule, self.title)
+    def logfmt(self) -> Tuple[int, str, tuple]:
         fmt = 'level=%s rule=%s ' + ' '.join(
             f'{k}=%r'
             for k
-            in self.results[0]
+            in self.offender
         )
-        for result in self.results:
-            # TODO: Proper logfmt.
-            # TODO: DictCursor instead and sub in
-            logger.log(self.severity.value, fmt,
-                       self.severity.name, self.rule, *result.values())
-
-    # TODO: Pretty
-    def print(self) -> None:
-        if logger.isEnabledFor(logging.DEBUG):
-            print('##', self.title)
-            if self.comment is not None:
-                # TODO: textwrap
-                for line in (self.comment or '').splitlines():
-                    print('#', line.strip())
-        for result in self.results:
-            print(self.severity.name[0].upper(), self.rule, *result.values())
+        return (self.severity.value, fmt,
+                (self.severity.name, self.rule, *self.offender.values()))
 
 
 def convert_params(params: Union[list, dict]) -> Union[list, dict]:
@@ -86,31 +62,27 @@ def convert_params(params: Union[list, dict]) -> Union[list, dict]:
 
 def apply_rule(cursor: psycopg2.extensions.cursor,
                rule_id: str,
-               rule: dict) -> Optional[RuleResult]:
+               rule: dict) -> List[RuleResult]:
     cursor.execute(rule['query'], rule.get('params'))
     names = [name for name, *_ in cursor.description]
-    if cursor.rowcount > 0:
-        return RuleResult(
+    return [
+        RuleResult(
             rule=rule_id,
             severity=Severity[rule['severity']],
             title=rule['title'],
             comment=rule.get('comment'),
-            results=[{name: cell
-                      for name, cell
-                      in zip(names, row)}
-                     for row
-                     in cursor.fetchall()],
+            offender={name: cell for name, cell in zip(names, row)}
         )
+        for row
+        in cursor.fetchall()
+    ]
 
 
 # Extract
 def apply_rules(cursor: psycopg2.extensions.cursor) -> List[RuleResult]:
-    return [results
-            for rule_id, rule
-            in builtin_rules['rules'].items()
-            for results
-            in [apply_rule(cursor, rule_id, rule)]
-            if results is not None]
+    return [result
+            for rule_id, rule in builtin_rules['rules'].items()
+            for result in apply_rule(cursor, rule_id, rule)]
 
 
 __all__ = (
