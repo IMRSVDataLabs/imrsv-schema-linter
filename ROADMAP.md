@@ -1,8 +1,8 @@
 - [ ] More rules:
-    * [ ] No columns
-    * [ ] One column
+    * [X] No columns
+    * [X] One column
     * [ ] No surrogate PK
-    * [ ] PK not first
+    * [X] PK not first
     * [ ] Too many columns
     * [ ] Attribute-less join tables with a surrogate key
     * [X] All tables have a primary key
@@ -23,10 +23,11 @@
     * [ ] Duplicate relationships
     * [ ] Disconnected table
     * [ ] Unused UDT
+        + [ ] Also enums, which aren't under `user_defined_types`.
     * [ ] `column1`, `column2` or `spouse1_id`, `spouse2_id`
     * [ ] Too many large objects
     * [ ] Column names that require quoting
-    * [ ] All, all minus PK, or too many nullable
+    * [X] All, all minus PK, or too many nullable
     * [ ] Table cycles
     * [ ] Self-referencing
     * [ ] Inherently redundant indexes, of the same index type

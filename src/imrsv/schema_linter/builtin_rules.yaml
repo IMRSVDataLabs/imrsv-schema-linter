@@ -22,6 +22,107 @@
 
 
 rules:
+  no-columns:
+    severity: error
+    title: Tables without columns
+    comment: We do not care for “table dual”, use (SELECT); then.
+    query: |
+      SELECT tables.table_schema, tables.table_name
+      FROM information_schema.tables
+      LEFT JOIN information_schema.columns
+        ON (tables.table_schema, tables.table_name) =
+           (columns.table_schema, columns.table_name)
+      GROUP BY tables.table_schema, tables.table_name
+      HAVING count(columns.table_name) = 0
+      ORDER BY tables.table_schema, tables.table_name
+
+  one-column:
+    severity: warning
+    title: Tables with just one column
+    comment: May conflict with pseudo-enums, fake tables, etc.
+    query: |
+      SELECT table_schema, table_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+      GROUP BY table_schema, table_name
+      HAVING count(*) = 1
+      ORDER BY table_schema, table_name
+
+  all-nullable:
+    severity: warning
+    title: All non-PK columns nullable
+    # FIXME: Doesn't handle multicolumn PKs, e.g., on some join tables.
+    query: |
+      SELECT *
+      FROM (
+        SELECT columns.table_schema, columns.table_name,
+               count(columns.column_name)
+                 FILTER (WHERE ccu IS NULL AND
+                               is_nullable = 'YES')
+                 AS nonpk_nullable,
+               count(columns.column_name) AS columns,
+               count(columns.column_name)
+                 FILTER (WHERE ccu IS NOT NULL)
+                 AS pk_columns
+        FROM information_schema.columns
+        JOIN information_schema.tables
+          ON (columns.table_schema, columns.table_name) =
+             (tables.table_schema, tables.table_name) AND
+             tables.table_type = 'BASE TABLE' AND
+             tables.table_schema = 'public'
+        LEFT JOIN information_schema.table_constraints
+          AS tc
+          ON (columns.table_schema, columns.table_name) =
+             (tc.table_schema, tc.table_name) AND
+             tc.constraint_type = 'PRIMARY KEY'
+        LEFT JOIN information_schema.constraint_column_usage
+          AS ccu
+          ON (ccu.table_schema, ccu.table_name, ccu.column_name,
+              ccu.constraint_name) =
+             (columns.table_schema, columns.table_name, columns.column_name,
+              tc.constraint_name)
+        GROUP BY columns.table_schema, columns.table_name
+      ) AS cc
+      WHERE columns - nonpk_nullable = pk_columns AND
+            nonpk_nullable > 0
+
+  # TODO: Introduce Python-side matches?
+
+  primary-key-not-first:
+    # FIXME: Doesn't deal well with dropped columns.
+    severity: notice
+    title: Primary key column not first column
+    comment: May interfere with column Tetris
+    query: |
+      SELECT table_schema, table_name,
+             array_agg(column_name ORDER BY ordinal_position)
+               AS column_names,
+             array_agg(ordinal_position ORDER BY ordinal_position)
+               AS ordinal_positions
+      FROM (
+        SELECT c.table_schema, c.table_name, c.column_name, c.ordinal_position,
+              count(*) OVER w
+        FROM information_schema.columns
+          AS c
+        JOIN information_schema.table_constraints
+          AS tc
+          ON (c.table_schema, c.table_name) =
+            (tc.table_schema, tc.table_name) AND
+            tc.constraint_type = 'PRIMARY KEY'
+        JOIN information_schema.constraint_column_usage
+          AS ccu
+          ON (ccu.table_schema, ccu.table_name, ccu.column_name,
+              ccu.constraint_name) =
+            (c.table_schema, c.table_name, c.column_name,
+              tc.constraint_name)
+        -- Cannot bool_or(ordinal_position > count(*)) because it's nested.
+        -- Don't want to just look at count(*) = 1.
+        WINDOW w AS (PARTITION BY c.table_schema, c.table_name)
+        ORDER BY 1, 2
+      ) AS pks
+      WHERE ordinal_position > count
+      GROUP BY table_schema, table_name
+
   no-primary-key:
     severity: warning
     title: Tables without a primary key
