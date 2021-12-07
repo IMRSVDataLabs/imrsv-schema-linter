@@ -13,7 +13,7 @@
     * [X] `SERIAL`
     * [X] Non-generated primary key, even if UUID
     * [X] `password_encryption` `scram-sha-256`
-    * [ ] Inconsistent PK types across the whole schema or database
+    * [X] Inconsistent PK types across the whole schema or database
     * [ ] Other uncommented DB objects:
         + [ ] Tables and views
         + [ ] Schemas
@@ -32,7 +32,8 @@
     * [ ] Self-referencing
     * [ ] Inherently redundant indexes, of the same index type
     * [ ] Unindexed tables
-    * [ ] Null as explicit default
+    * [ ] All PK (NOTICE)
+    * [X] Not bigint PK
 - [ ] User config files.
 - [ ] Generic schema/table/column filtering.
 - [ ] Properly handle schemas instead of assuming `public`.
