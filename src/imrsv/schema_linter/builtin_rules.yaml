@@ -556,12 +556,12 @@ rules:
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
 
-            (data_type = ANY(%(data_types)s) OR
-             udt_name = ANY(%(udt_names)s)) AND
-            NOT (data_type = ANY(%(data_types_not)s) OR
-                 udt_name = ANY(%(udt_names_not)s)) OR
+            ((data_type = ANY(%(data_types)s) OR
+              udt_name = ANY(%(udt_names)s)) AND
+             NOT (data_type = ANY(%(data_types_not)s) OR
+                  udt_name = ANY(%(udt_names_not)s)) OR
 
-            NOT %(allow_pg_internal)s AND data_type LIKE 'pg_%%'
+             NOT %(allow_pg_internal)s AND data_type LIKE 'pg_%%')
       ORDER BY table_name, column_name
 
   nullable-columns:
