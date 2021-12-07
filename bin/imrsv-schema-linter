@@ -14,7 +14,8 @@ import logging
 
 import psycopg2
 
-from imrsv.schema_linter.rules import Severity, RuleResult, apply_rules
+from imrsv.schema_linter.rules import (Severity, RuleResult, apply_rules,
+    builtin_rules)
 from imrsv.schema_linter import logger
 
 
@@ -24,11 +25,13 @@ argument_parser = argparse.ArgumentParser(
 )
 argument_parser.add_argument(
     '-u', '--url', default='postgresql://',
-    help='libpq-compatible DSN or URL per v14 § 34.1.1 Connection Strings',
+    help='libpq-compatible DSN or URL per PG v14 § 34.1.1 Connection Strings',
 )
+# TODO: Make subcommands instead. Some args should be mutually exclusive, like
+# -u and -f rules.
 argument_parser.add_argument(
     '-f', '--format',
-    default='print', choices=('print', 'logfmt'),  # TODO: 'json'
+    default='print', choices=('print', 'logfmt', 'rules'),  # TODO: 'json'
 )
 argument_parser.add_argument(
     '-l', '--log-level',
@@ -103,8 +106,19 @@ def show_results(args: argparse.Namespace, results: List[RuleResult]) -> None:
         log_results(results)
 
 
+def show_rules(args: argparse.Namespace) -> None:
+    for rule_id, rule in builtin_rules['rules'].items():
+        if logger.isEnabledFor(Severity[rule['severity']].value):
+            print(rule['severity'][0].upper(), rule_id, rule['title'])
+
+
 def main(args: argparse.Namespace) -> None:
     logger.setLevel(Severity[args.log_level].value)
+    if args.format == 'rules':
+        with autopage():
+            show_rules(args)
+        return
+
     with psycopg2.connect(args.url) as connection:
         with connection.cursor() as cursor:
             with autopage():

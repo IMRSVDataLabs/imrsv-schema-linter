@@ -86,5 +86,5 @@ def apply_rules(cursor: psycopg2.extensions.cursor) -> List[RuleResult]:
 
 
 __all__ = (
-    'Severity', 'RuleResult', 'apply_rules',
+    'Severity', 'RuleResult', 'apply_rules', 'builtin_rules',
 )
