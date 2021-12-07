@@ -1,15 +1,17 @@
-## IMRSV PostgreSQL schema linter ##
+# IMRSV PostgreSQL schema linter #
 
 Find schema design mistakes by inspecting `information_schema` and
 `pg_catalog`.
 
-**tl; dr, why this tool and not others?**
+## tl; dr, why this tool and not others? ##
 
 - Is a schema linter, not a SQL SELECT/UPDATE/etc. linter.
 - Has a larger and actionable default ruleset (we want to be the one
   linter to rule them all).
 - Is trivially user extensible rather than having to provision 5 different
   linters or ask the original linter author to accept your PR.
+
+## Usage ##
 
 Just read the `--help` and run it with libpq `PG*` env vars set or pass
 it a DSN/URL.
@@ -20,6 +22,8 @@ $ PGHOST=staging.example.com PGDATABASE=api imrsv-schema-linter -f logfmt -l war
 level=error rule=forbidden-types table_name='some_system' column_name='that_system_created_at' data_type='timestamp without time zone' udt_name='timestamp'
 …
 ```
+
+## Description ##
 
 Mostly according to [@pilona]'s typical PR review feedback and some
 particularly egregious third party schemas we've seen before. Mostly
