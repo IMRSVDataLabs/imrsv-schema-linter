@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
-from typing import Iterable, List, Dict, NamedTuple, Union, Tuple
+from typing import (Iterable, List, Dict, NamedTuple, Union, Tuple,
+                    Optional, Any)
 from pathlib import Path
 from enum import Enum
 import importlib.resources
@@ -9,12 +10,6 @@ import logging
 import psycopg2.extensions
 import psycopg2
 import yaml
-
-
-# TODO: Merge. Just use adobe/himl?
-builtin_rules = yaml.safe_load(importlib.resources.read_text(
-    'imrsv.schema_linter', 'builtin_rules.yaml'
-))
 
 
 # TODO: pyproject.toml:[tools.imrsv.schema_linter]
@@ -36,6 +31,38 @@ class Severity(Enum):
     error = logging.ERROR
 
 
+class Rule(NamedTuple):
+    id: str
+    title: str
+    severity: Severity
+    query: str
+    # TODO: Supported types to pass to psycopg2
+    comment: Optional[str] = None
+    params: Optional[Union[Dict[str, Any],
+                           List[Any]]] = None
+    group: Optional[str] = None
+
+
+class Ruleset(NamedTuple):
+    rules: Dict[str, Rule]
+    root: bool = False
+
+
+# TODO: Merge. Just use adobe/himl?
+# Don't learn from this people! This is a quick hack.
+builtin_rules = Ruleset(**yaml.safe_load(importlib.resources.read_text(
+    'imrsv.schema_linter', 'builtin_rules.yaml'
+)))
+builtin_rules = builtin_rules._replace(
+    rules={
+        k: Rule(**v, id=k)._replace(severity=Severity[v['severity']])
+        for k, v
+        in builtin_rules.rules.items()
+    }
+)
+
+
+# TODO: Use class Rule.
 class RuleResult(NamedTuple):
     rule: str
     severity: Severity
@@ -63,14 +90,14 @@ def convert_params(params: Union[list, dict]) -> Union[list, dict]:
 def apply_rule(cursor: psycopg2.extensions.cursor,
                rule_id: str,
                rule: dict) -> List[RuleResult]:
-    cursor.execute(rule['query'], rule.get('params'))
+    cursor.execute(rule.query, rule.params)
     names = [name for name, *_ in cursor.description]
     return [
         RuleResult(
             rule=rule_id,
-            severity=Severity[rule['severity']],
-            title=rule['title'],
-            comment=rule.get('comment'),
+            severity=rule.severity,
+            title=rule.title,
+            comment=rule.comment,
             offender={name: cell for name, cell in zip(names, row)}
         )
         for row
@@ -81,7 +108,7 @@ def apply_rule(cursor: psycopg2.extensions.cursor,
 # Extract
 def apply_rules(cursor: psycopg2.extensions.cursor) -> List[RuleResult]:
     return [result
-            for rule_id, rule in builtin_rules['rules'].items()
+            for rule_id, rule in builtin_rules.rules.items()
             for result in apply_rule(cursor, rule_id, rule)]
 
 

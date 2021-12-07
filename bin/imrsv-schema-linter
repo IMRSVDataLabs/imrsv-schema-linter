@@ -14,8 +14,8 @@ import logging
 
 import psycopg2
 
-from imrsv.schema_linter.rules import (Severity, RuleResult, apply_rules,
-    builtin_rules)
+from imrsv.schema_linter.rules import (
+    Severity, RuleResult, apply_rules, builtin_rules)
 from imrsv.schema_linter import logger
 
 
@@ -107,9 +107,9 @@ def show_results(args: argparse.Namespace, results: List[RuleResult]) -> None:
 
 
 def show_rules(args: argparse.Namespace) -> None:
-    for rule_id, rule in builtin_rules['rules'].items():
-        if logger.isEnabledFor(Severity[rule['severity']].value):
-            print(rule['severity'][0].upper(), rule_id, rule['title'])
+    for rule_id, rule in builtin_rules.rules.items():
+        if logger.isEnabledFor(rule.severity.value):
+            print(rule.severity.name[0].upper(), rule_id, rule.title)
 
 
 def main(args: argparse.Namespace) -> None:

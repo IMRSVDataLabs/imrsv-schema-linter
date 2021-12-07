@@ -20,7 +20,7 @@
 #           99 | host  | {all}         | {all}     | all       |                                         | scram-sha-256 |         |
 # (7 rows)
 
-
+root: false
 rules:
   no-columns:
     severity: error
