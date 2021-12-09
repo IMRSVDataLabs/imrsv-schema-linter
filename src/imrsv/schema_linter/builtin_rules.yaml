@@ -242,7 +242,8 @@ rules:
             ccu.constraint_name) =
           (c.table_schema, c.table_name, c.column_name,
             tc.constraint_name)
-      WHERE c.data_type <> 'bigint'
+      WHERE c.numeric_precision IS NOT NULL AND
+            c.data_type <> 'bigint'
       ORDER BY 1, 2, 3
 
   inconsistent-surrogate-pk-types:
