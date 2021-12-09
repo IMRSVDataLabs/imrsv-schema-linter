@@ -21,7 +21,7 @@
         + [ ] Functions, procedures (yes, like a docstring)
         + [ ] The other types at the notice level.
     * [ ] Duplicate relationships
-    * [ ] Disconnected table
+    * [X] Disconnected table
     * [ ] Unused UDT
         + [ ] Also enums, which aren't under `user_defined_types`.
     * [ ] `column1`, `column2` or `spouse1_id`, `spouse2_id`
@@ -30,7 +30,7 @@
     * [X] All, all minus PK, or too many nullable
     * [ ] Table cycles
     * [ ] Table cycles, recursively
-    * [ ] Self-referencing
+    * [X] Self-referencing
     * [ ] Inherently redundant indexes, of the same index type
     * [ ] Unindexed tables
     * [ ] All PK (NOTICE)

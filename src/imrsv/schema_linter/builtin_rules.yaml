@@ -744,3 +744,39 @@ rules:
                table_constraints.constraint_name
       ORDER BY table_constraints.table_name,
                table_constraints.constraint_name
+
+  self-referential-table:
+    severity: notice
+    title: Self-referential table
+    comment: |
+      Possibly not what you want. Depends on your tree or other datastructure
+      design pattern.
+    query: |
+      SELECT fkey.table_schema, fkey.table_name, fkey.constraint_name
+      FROM information_schema.referential_constraints
+        AS rc
+      JOIN information_schema.table_constraints
+        AS fkey
+        ON (fkey.constraint_schema, fkey.constraint_name) =
+           (rc.constraint_schema, rc.constraint_name)
+      JOIN information_schema.table_constraints
+        AS pkey
+        ON (pkey.constraint_schema, pkey.constraint_name) =
+           (rc.unique_constraint_schema, rc.unique_constraint_name)
+      WHERE (fkey.table_schema, fkey.table_name) =
+            (pkey.table_schema, pkey.table_name)
+      ORDER BY 1, 2, 3
+
+  disconnected-tables:
+    severity: notice
+    title: Tables without a reference to at least another one
+    query: |
+      SELECT tables.table_schema, tables.table_name
+      FROM information_schema.tables
+      LEFT JOIN information_schema.table_constraints
+        AS tc
+        ON (tables.table_schema, tables.table_name) =
+           (tc.table_schema, tc.table_name) AND
+           tc.constraint_type = 'FOREIGN KEY'
+      WHERE tc IS NULL AND tables.table_schema = 'public'
+      ORDER BY 1, 2
