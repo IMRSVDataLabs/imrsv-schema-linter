@@ -50,6 +50,14 @@ The linter does not verify SQL code in any way, nor does it understand how, how
 often, and how much of which data in particular you access, much less
 its “volume, variety, and velocity”.
 
+Please `imrsv-schema-linter -f rules` for current rules, and read the
+[roadmap](./ROADMAP.md) for future rules.
+
+- It's currently alpha.
+- It'll be beta when I've sufficiently committed to CLI options and
+  rules/config file schemas.
+- It'll go 1.0 when it's polished and sufficiently unit tested.
+
 ## Other **notable** semantic, not stylistic or syntactical checkers ##
 
 What are the other ones like us? What other tools should I use _too_?
