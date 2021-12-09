@@ -575,7 +575,6 @@ rules:
         - money
         - time with time zone
         - timestamp without time zone
-        #- character varying
       data_types_extra: []
       udt_names: []
       data_types_not: []
@@ -606,7 +605,6 @@ rules:
         - ARRAY
         - anyarray
         - anyc
-        #- character varying
       udt_names: []
       data_types_not: []
       udt_names_not: []
@@ -623,6 +621,21 @@ rules:
 
              NOT %(allow_pg_internal)s AND data_type LIKE 'pg_%%')
       ORDER BY table_name, column_name
+
+  varchar-silent-truncation:
+    severity: notice
+    title: VARCHAR(n) will silently truncate oversized inputs
+    comment: |
+      Consider TEXT instead, or make sure you have proper truncation
+      detection/warnings/errors client-side. VARCHAR(n) is OK if you explicitly
+      need to be robust against oversized inputs and you are OK with the lack
+      of warnnig.
+    query:
+      SELECT table_schema, table_name, column_name, character_maximum_length
+      FROM information_schema.columns
+      WHERE character_maximum_length IS NOT NULL AND
+            table_schema = 'public'
+      ORDER BY 1, 2, 3
 
   nullable-columns:
     severity: error
