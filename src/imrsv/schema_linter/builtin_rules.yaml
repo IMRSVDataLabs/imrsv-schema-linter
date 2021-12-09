@@ -780,3 +780,55 @@ rules:
            tc.constraint_type = 'FOREIGN KEY'
       WHERE tc IS NULL AND tables.table_schema = 'public'
       ORDER BY 1, 2
+
+  forbidden-extension:
+    severity: error
+    title: Forbidden PostgreSQL extension
+    query: |
+      SELECT pg_namespace.nspname, pg_extension.extname, v.why
+      FROM pg_catalog.pg_extension
+      JOIN pg_namespace
+        ON pg_namespace.oid = pg_extension.extnamespace
+      JOIN (VALUES ('file_fdw',
+                    'You shouldn''t have to deal with and lock down anything'
+                    ' but the PG protocol, especially in read-only other'
+                    ' than $PGDATA stateless containers. It''s also'
+                    ' probably not available on the cloud.'),
+                   ('adminpack',
+                    'You shouldn''t have to deal with and lock down anything'
+                    ' but the PG protocol, especially in read-only other'
+                    ' than $PGDATA stateless containers. It''s also'
+                    ' probably not available on the cloud.'),
+                   ('test_decoding',
+                    'Is example source code only!'))
+        AS v(extname, why)
+        ON pg_extension.extname = v.extname
+      ORDER BY 1, 2
+
+  deprecated-extension:
+    severity: warning
+    title: Deprecated PostgreSQL extension
+    query: |
+      SELECT pg_namespace.nspname, pg_extension.extname, v.why
+      FROM pg_catalog.pg_extension
+      JOIN pg_namespace
+        ON pg_namespace.oid = pg_extension.extnamespace
+      JOIN (VALUES ('uuid-ossp',
+                    'Do you really need anything but UUIDv4?'),
+                   ('xml2',
+                    'Per v14 F.45 § F.45.1 Deprecation Notice, use the SQL'
+                    ' standard instead'),
+                   ('dblink',
+                    'Inconvenient, especially compared to postgres_fdw'),
+                   ('hstore',
+                    'You can probably just use jsonb'),
+                   ('intagg',
+                    'Per v14 F.17, "The intagg module provides an integer'
+                    ' aggregator and an enumerator. intagg is now obsolete,'
+                    ' because there are built-in functions that provide a'
+                    ' superset of its capabilities. However, the module is'
+                    ' still provided as a compatibility wrapper around the'
+                    ' built-in functions."'))
+        AS v(extname, why)
+        ON pg_extension.extname = v.extname
+      ORDER BY 1, 2
