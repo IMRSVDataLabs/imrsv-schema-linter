@@ -29,11 +29,43 @@
     * [ ] Column names that require quoting
     * [X] All, all minus PK, or too many nullable
     * [ ] Table cycles
+    * [ ] Table cycles, recursively
     * [ ] Self-referencing
     * [ ] Inherently redundant indexes, of the same index type
     * [ ] Unindexed tables
     * [ ] All PK (NOTICE)
-    * [X] Not bigint PK
+    * [X] Not `bigint` PK
+    * [ ] Column Tetris
+    * [ ] Unindexed foreign and primary keys
+    * [ ] Redundant index when composite prefix will do
+    * [ ] Run views, functions/procedures, defaults, and generated through a query linter.
+    * [ ] Deprecated extensions
+        + [ ] `uuid-ossp` (debatable), just use `gen_random_uuid()` unless you really need not completely random UUIDs at your own peril)
+        + [ ] (lib)`xml2`, per v14 F.45. xml 2 § F.45.1 Deprecation Notice, use SQL standard instead
+        + [ ] `dblink`, use postgres_fdw instead
+        + [ ] `hstore`?
+        + [ ] `intagg`, v14 F.17, “The intagg module provides an integer aggregator and an enumerator. intagg is now obsolete, because there are built-in functions that provide a superset of its capabilities. However, the module is still provided as a compatibility wrapper around the built-in functions.”
+    * [ ] Forbidden extensions
+        + [ ] `plpython2`
+        + [ ] `pltcl`/`pltclu`
+        + [ ] `file_fdw`, Don't access files, especially in a cloud where it's probably not available and you have yet another way of getting onto a box we wanted to lock down
+        + [ ] `adminpack`, same reason as file_fdw
+        + [ ] `test_decoding`, it's an examply only
+    * [ ] warn on routine language
+    * [ ] error on routine language
+    * [ ] `plpythonu` instead of `plpython3u` explicitly
+    * [ ] Non-IMRSV languages
+    * false sense of security `pg_hba_file_rules`
+        [ ] address ≠ all or 127.0.0.1 or ::1
+        [ ] netmask not null or 255.255.255.255 or ffff:…:ffff
+        [ ] auth-method md5, password, ident
+        [ ] separately warn about pam, bsd, cert for cloud or k8s
+        [ ] sspi, why are you running on Windows, what a terrible idea
+        [ ] auth-method peer not used on UNIX domain socket
+        [ ] a lot of rules, arbitrary number, may be easy to make mistakes
+    * [ ] Unenforced constraints?
+    * [ ] Disabled triggers?
+    * [ ] `ON UPDATE` on surrogate key
 - [ ] User config files.
 - [ ] Generic schema/table/column filtering.
 - [ ] Properly handle schemas instead of assuming `public`.
