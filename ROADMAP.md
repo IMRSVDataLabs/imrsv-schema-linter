@@ -58,10 +58,10 @@
     * false sense of security `pg_hba_file_rules`
         [ ] address ≠ all or 127.0.0.1 or ::1
         [ ] netmask not null or 255.255.255.255 or ffff:…:ffff
-        [ ] auth-method md5, password, ident
-        [ ] separately warn about pam, bsd, cert for cloud or k8s
-        [ ] sspi, why are you running on Windows, what a terrible idea
-        [ ] auth-method peer not used on UNIX domain socket
+        [X] auth-method md5, password, ident
+        [X] separately warn about pam, bsd, cert for cloud or k8s
+        [X] sspi, why are you running on Windows, what a terrible idea
+        [X] auth-method peer not used on UNIX domain socket
         [ ] a lot of rules, arbitrary number, may be easy to make mistakes
     * [ ] Unenforced constraints?
     * [ ] Disabled triggers?

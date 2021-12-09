@@ -1,27 +1,69 @@
 # See also:
 # - https://wiki.postgresql.org/wiki/Don't_Do_This
 # - https://www.schemacrawler.com/lint.html
-#
-# Code linting:
-# - https://docs.sqlfluff.com/en/stable/rules.html
-# - https://github.com/kristiandupont/schemalint/tree/master/src/rules
-#
-# Redundant ID in join table
-#
-# api=# select * from pg_catalog.pg_hba_file_rules ;
-#  line_number | type  |   database    | user_name |  address  |                 netmask                 |  auth_method  | options | error
-# -------------+-------+---------------+-----------+-----------+-----------------------------------------+---------------+---------+-------
-#           88 | local | {all}         | {all}     |           |                                         | trust         |         |
-#           90 | host  | {all}         | {all}     | 127.0.0.1 | 255.255.255.255                         | scram-sha-256 |         |
-#           92 | host  | {all}         | {all}     | ::1       | ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff | scram-sha-256 |         |
-#           95 | local | {replication} | {all}     |           |                                         | trust         |         |
-#           96 | host  | {replication} | {all}     | 127.0.0.1 | 255.255.255.255                         | scram-sha-256 |         |
-#           97 | host  | {replication} | {all}     | ::1       | ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff | scram-sha-256 |         |
-#           99 | host  | {all}         | {all}     | all       |                                         | scram-sha-256 |         |
-# (7 rows)
 
 root: false
 rules:
+  no-trust-auth-over-ip:
+    severity: error
+    title: Trust authentication over inet
+    comment: |
+      Seriously, don't do this, even if ever so inconvenient. Make it
+      convenient instead.
+    query: |
+      SELECT *
+      FROM pg_catalog.pg_hba_file_rules
+      WHERE auth_method = 'trust' AND type <> 'local'
+      ORDER BY line_number
+
+  insecure-auth-method:
+    severity: error
+    title: Insecure authentication method
+    comment: |
+      This has all been well known since between the 1980s and the 2010s
+      depending on the auth_method. Also, instead of trust, you can just
+      sudo -u postgres psql, or whatever your local user is if you really
+      depend on that.
+    query: |
+      SELECT p.*, v.why
+      FROM pg_catalog.pg_hba_file_rules AS p
+      JOIN (VALUES ('md5', 'long known insecure hash'),
+                   ('password',
+                    'plaintext password, uuuum, not since 1980s crypt()'),
+                   ('trust',
+                    'Blindly trusting, i.e., not authenticating; at least use'
+                    ' peer for local'),
+                   ('ident',
+                    'authenticating users by their IP:port alone (spoofable,'
+                    ' replayable, not secret)'))
+        AS v(auth_method, why)
+        ON p.auth_method = v.auth_method
+      ORDER BY line_number
+
+  windows-auth:
+    severity: warning
+    title: Windows authentication (SSPI)
+    comment: |
+      Why the heck are you using Windows in the first place?
+    query: |
+      SELECT *
+      FROM pg_catalog.pg_hba_file_rules
+      WHERE auth_method = 'sspi'
+      ORDER BY line_number
+
+  server-itself-authentication:
+    severity: notice
+    title: Server itself authentication rather than external or in-PG
+    comment: |
+      Especially in other than $PGDATA, read-only, and otherwise stateless
+      containers, it could be annoying to change passwords and provision users,
+      and you won't be able to change them over time.
+    query: |
+      SELECT *
+      FROM pg_catalog.pg_hba_file_rules
+      WHERE auth_method IN ('pam', 'bsd')
+      ORDER BY line_number
+
   no-columns:
     severity: error
     title: Tables without columns
