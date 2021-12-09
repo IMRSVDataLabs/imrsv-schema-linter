@@ -781,6 +781,15 @@ rules:
       WHERE tc IS NULL AND tables.table_schema = 'public'
       ORDER BY 1, 2
 
+  forbidden-routine-language:
+    severity: error
+    title: Forbidden procedure/function language
+    query: |
+      SELECT routine_schema, routine_name, routine_type, external_language
+      FROM information_schema.routines
+      WHERE external_language NOT IN ('SQL', 'PLPGSQL', 'C', 'INTERNAL')
+      ORDER BY 1, 2, 3, 4
+
   forbidden-extension:
     severity: error
     title: Forbidden PostgreSQL extension
@@ -789,7 +798,25 @@ rules:
       FROM pg_catalog.pg_extension
       JOIN pg_namespace
         ON pg_namespace.oid = pg_extension.extnamespace
-      JOIN (VALUES ('file_fdw',
+      JOIN (VALUES ('plpythonu',
+                    'Should be explicit about Python 2 vs 3 rather than'
+                    ' depending on the cloud or Linux distro'),
+                   ('plpython2u',
+                    'You really should have left in 2015, and it was finally'
+                    ' dead for real in Jan 2020'),
+                   ('pltcl',
+                    'Tcl has long been an inferior language to Python, aside'
+                    ' from Expect. Please don''t.'),
+                   ('pltclu',
+                    'Tcl has long been an inferior language to Python, aside'
+                    ' from Expect. Please don''t.'),
+                   ('plperl',
+                    'Please don''t write in a "write-only" language like Perl'
+                    ' that nobody at IMRSV knows.'),
+                   ('plperlu',
+                    'Please don''t write in a "write-only" language like Perl'
+                    ' that nobody at IMRSV knows.'),
+                   ('file_fdw',
                     'You shouldn''t have to deal with and lock down anything'
                     ' but the PG protocol, especially in read-only other'
                     ' than $PGDATA stateless containers. It''s also'

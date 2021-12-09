@@ -45,16 +45,16 @@
         + [X] `dblink`, use postgres_fdw instead
         + [X] `hstore`?
         + [X] `intagg`, v14 F.17, “The intagg module provides an integer aggregator and an enumerator. intagg is now obsolete, because there are built-in functions that provide a superset of its capabilities. However, the module is still provided as a compatibility wrapper around the built-in functions.”
-    * [ ] Forbidden extensions
-        + [ ] `plpython2`
-        + [ ] `pltcl`/`pltclu`
+    * [X] Forbidden extensions
+        + [X] `plpython2`
+        + [X] `pltcl`/`pltclu`
         + [X] `file_fdw`, Don't access files, especially in a cloud where it's probably not available and you have yet another way of getting onto a box we wanted to lock down
         + [X] `adminpack`, same reason as file_fdw
         + [X] `test_decoding`, it's an examply only
     * [ ] warn on routine language
-    * [ ] error on routine language
-    * [ ] `plpythonu` instead of `plpython3u` explicitly
-    * [ ] Non-IMRSV languages
+    * [X] error on routine language
+    * [X] `plpythonu` instead of `plpython3u` explicitly
+    * [X] Non-IMRSV languages
     * false sense of security `pg_hba_file_rules`
         [ ] address ≠ all or 127.0.0.1 or ::1
         [ ] netmask not null or 255.255.255.255 or ffff:…:ffff
