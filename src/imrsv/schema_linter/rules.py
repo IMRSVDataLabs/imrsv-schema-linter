@@ -12,16 +12,6 @@ import psycopg2
 import yaml
 
 
-# TODO: pyproject.toml:[tools.imrsv.schema_linter]
-def your_rules(p: Path) -> Iterable[Path]:
-    p_y = p.joinpath('.schema_linter.yaml')
-    if p.parent == p:
-        return
-    if p_y.exists():
-        yield p_y
-    yield from your_rules(p.parent)
-
-
 class Severity(Enum):
     trace = logging.DEBUG  # FIXME
     debug = logging.DEBUG
@@ -42,24 +32,66 @@ class Rule(NamedTuple):
                            List[Any]]] = None
     group: Optional[str] = None
 
+    def apply(self,
+              cursor: psycopg2.extensions.cursor) -> Iterable['RuleResult']:
+        cursor.execute(self.query, self.params)
+        names = [name for name, *_ in cursor.description]
+        return (
+            RuleResult(
+                rule=self.id,
+                severity=self.severity,
+                title=self.title,
+                comment=self.comment,
+                offender={name: cell for name, cell in zip(names, row)}
+            )
+            for row
+            in cursor.fetchall()
+        )
+
+
+# TODO: How to put in class?
+CONFIG_FILE = '.schema_linter.yaml'
+
 
 class Ruleset(NamedTuple):
     rules: Dict[str, Rule]
     root: bool = False
 
+    @classmethod
+    @property
+    def DEFAULT(cls) -> 'Ruleset':
+        return cls.loads(
+            importlib.resources.read_text('imrsv.schema_linter',
+                                          'builtin_rules.yaml'),
+        )
 
-# TODO: Merge. Just use adobe/himl?
-# Don't learn from this people! This is a quick hack.
-builtin_rules = Ruleset(**yaml.safe_load(importlib.resources.read_text(
-    'imrsv.schema_linter', 'builtin_rules.yaml'
-)))
-builtin_rules = builtin_rules._replace(
-    rules={
-        k: Rule(**v, id=k)._replace(severity=Severity[v['severity']])
-        for k, v
-        in builtin_rules.rules.items()
-    }
-)
+    @classmethod
+    def loads(cls, s: str) -> 'Ruleset':
+        o = cls(**yaml.safe_load(s))
+        # Don't learn from this people! This is a quick hack.
+        o = o._replace(
+            rules={
+                k: Rule(id=k, **v)._replace(
+                    severity=Severity[v['severity']],
+                    labels=frozenset(v['labels'] or []),
+                )
+                for k, v
+                in o.rules.items()
+            }
+        )
+        return o
+
+    # TODO: pyproject.toml:[tools.imrsv.schema_linter]
+    @classmethod
+    def scoped_paths(cls, p: Path) -> Iterable[Path]:
+        p_y = p.joinpath(CONFIG_FILE)
+        if p.parent == p:
+            return
+        if p_y.exists():
+            yield p_y
+        yield from cls.scoped_paths(p.parent)
+
+    # TODO: def merge. Just use adobe/himl?
 
 
 # TODO: Use class Rule.
@@ -67,8 +99,8 @@ class RuleResult(NamedTuple):
     rule: str
     severity: Severity
     title: str
-    comment: str
     offender: Dict[str, str]  # FIXME: Not actually str RHS
+    comment: Optional[str] = None
 
     def logfmt(self) -> Tuple[int, str, tuple]:
         fmt = 'level=%s rule=%s ' + ' '.join(
@@ -106,12 +138,13 @@ def apply_rule(cursor: psycopg2.extensions.cursor,
 
 
 # Extract
-def apply_rules(cursor: psycopg2.extensions.cursor) -> List[RuleResult]:
+def apply_rules(cursor: psycopg2.extensions.cursor,
+                rules: Iterable[Rule]) -> Iterable[RuleResult]:
     return [result
-            for rule_id, rule in builtin_rules.rules.items()
-            for result in apply_rule(cursor, rule_id, rule)]
+            for rule in rules
+            for result in rule.apply(cursor)]
 
 
 __all__ = (
-    'Severity', 'RuleResult', 'apply_rules', 'builtin_rules',
+    'Severity', 'RuleResult', 'apply_rules',
 )
