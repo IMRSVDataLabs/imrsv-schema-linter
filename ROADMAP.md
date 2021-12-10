@@ -32,7 +32,7 @@
     * [ ] Table cycles, recursively
     * [X] Self-referencing
     * [ ] Inherently redundant indexes, of the same index type
-    * [ ] Unindexed tables
+    * [X] Unindexed tables
     * [ ] All PK (NOTICE)
     * [X] Not `bigint` PK
     * [ ] Column Tetris

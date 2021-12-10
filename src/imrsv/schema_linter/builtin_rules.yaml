@@ -984,3 +984,46 @@ rules:
         AS v(extname, why)
         ON pg_extension.extname = v.extname
       ORDER BY 1, 2
+
+  no-uniques:
+    severity: notice
+    title: Not a single UNIQUE constraint
+    labels:
+      - correctness
+      - hitandmiss
+    comment: You possibly forgot something
+    query: |
+      SELECT c.catalog_name
+      FROM information_schema.information_schema_catalog_name
+        AS c
+      LEFT JOIN information_schema.table_constraints
+        AS tc
+        ON c.catalog_name = tc.constraint_catalog
+           -- TODO: Not pick up system ones!
+      GROUP BY c.catalog_name
+      HAVING count(tc) = 0
+      ORDER BY 1
+
+  unindexed-table:
+    severity: warning
+    title: Unindexed title
+    labels:
+      - proprietary
+      - postgres
+      - performance
+      - hitandmiss
+    comment: |
+      May not be relevant for small reference tables, though those really
+      should have a UNIQUE or PRIMARY KEY.
+    query:
+      SELECT table_schema, table_name
+      FROM information_schema.tables
+      JOIN pg_namespace
+        ON table_schema = pg_namespace.nspname
+      JOIN pg_class
+        ON pg_class.relnamespace = pg_namespace.oid AND
+           pg_class.relname = table_name
+      LEFT JOIN pg_index ON indrelid = pg_class.oid
+      WHERE pg_index IS NULL AND
+            table_schema = 'public'
+      ORDER BY 1, 2
