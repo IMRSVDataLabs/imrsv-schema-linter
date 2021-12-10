@@ -876,14 +876,21 @@ rules:
     labels:
       - correctness
     query: |
-      SELECT tables.table_schema, tables.table_name
+      SELECT DISTINCT tables.table_schema, tables.table_name
       FROM information_schema.tables
-      LEFT JOIN information_schema.table_constraints
-        AS tc
+      LEFT JOIN (
+        SELECT DISTINCT tc.table_schema, tc.table_name
+        FROM information_schema.referential_constraints
+          AS rc
+        JOIN information_schema.table_constraints
+          AS tc
+          ON (tc.constraint_schema, tc.constraint_name) IN
+             ((rc.constraint_schema, rc.constraint_name),
+              (rc.unique_constraint_schema, rc.unique_constraint_name))
+      ) AS fked
         ON (tables.table_schema, tables.table_name) =
-           (tc.table_schema, tc.table_name) AND
-           tc.constraint_type = 'FOREIGN KEY'
-      WHERE tc IS NULL AND tables.table_schema = 'public'
+           (fked.table_schema, fked.table_name)
+      WHERE fked IS NULL AND tables.table_schema = 'public'
       ORDER BY 1, 2
 
   forbidden-routine-language:
