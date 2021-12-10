@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 from typing import (Iterable, List, Dict, NamedTuple, Union, Tuple,
-                    Optional, Any)
+                    Optional, Any, AbstractSet)
 from pathlib import Path
 from enum import Enum
 import importlib.resources
@@ -24,6 +24,7 @@ class Severity(Enum):
 class Rule(NamedTuple):
     id: str
     title: str
+    labels: AbstractSet[str]
     severity: Severity
     query: str
     # TODO: Supported types to pass to psycopg2

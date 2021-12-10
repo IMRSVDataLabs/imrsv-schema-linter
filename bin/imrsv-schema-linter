@@ -112,11 +112,30 @@ def show_rules(args: argparse.Namespace) -> None:
             print(rule.severity.name[0].upper(), rule_id, rule.title)
 
 
+def show_labels(args: argparse.Namespace) -> None:
+    labels = {
+        label
+        for rule_id, rule
+        in Ruleset.DEFAULT.rules.items()
+        if logger.isEnabledFor(rule.severity.value)
+        for label
+        in rule.labels
+    }
+    for label in sorted(labels):
+        print(label)
+
+
 def main(args: argparse.Namespace) -> None:
     logger.setLevel(Severity[args.log_level].value)
+
     if args.format == 'rules':
         with autopage():
             show_rules(args)
+        return
+
+    if args.format == 'labels':
+        with autopage():
+            show_labels(args)
         return
 
     with psycopg2.connect(args.url) as connection:
