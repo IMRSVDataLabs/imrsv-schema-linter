@@ -1027,3 +1027,45 @@ rules:
       WHERE pg_index IS NULL AND
             table_schema = 'public'
       ORDER BY 1, 2
+
+  # TODO: Group by predicate (indpred) too.
+  # TODO: Group by expression indexes (indexprs) too.
+  # TODO: Does indclass matter?
+  # TODO: Give reconstructed SQL back with pg_get_indexdef(indexrelid)?
+  # indkey value 0
+  # > A zero in this array indicates that the corresponding index attribute is
+  # > an expression over the table columns, rather than a simple column
+  # > reference.
+  duplicate-indexes:
+    severity: warning
+    title: Duplicate indexes
+    labels:
+      - proprietary
+      - postgres
+      - performance
+    query:
+      SELECT nspname AS table_schema,
+             relname AS table_name,
+             min(attnames) AS table_columns,
+             min(indnames) AS index_names
+      FROM (SELECT pg_index.indexrelid, nspname, pg_class.relname,
+                   array_agg(attname
+                             ORDER BY attname)
+                     AS attnames,
+                   array_agg(coln.attkey::smallint
+                             ORDER BY coln.attkey::smallint)
+                     AS attkeys,
+                   array_agg(indclass.relname)
+                     AS indnames
+            FROM pg_index
+            JOIN pg_class ON pg_index.indrelid = pg_class.oid
+            JOIN pg_namespace ON relnamespace = pg_namespace.oid
+            JOIN pg_attribute ON attrelid = pg_class.oid
+            JOIN LATERAL regexp_split_to_table(int2vectorout(indkey)::text, ' ')
+              AS coln(attkey)
+              ON coln.attkey::smallint = pg_attribute.attnum
+            JOIN pg_class AS indclass ON indclass.oid = indexrelid
+            WHERE nspname = 'public'
+            GROUP BY 1, 2, 3) q
+      GROUP BY 1, 2
+      HAVING count(*) > 1;
