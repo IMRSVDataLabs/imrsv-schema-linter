@@ -26,8 +26,7 @@ setup(
             'mypy',
             'bandit',
             'safety',
-        ],
-        'ci': [
+            # 'types-PyYAML', or mypy --install-types?
             'pytest',
             'pytest-cov',
             'coverage',
