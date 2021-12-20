@@ -8,6 +8,7 @@ import importlib.resources
 import logging
 
 import psycopg2.extensions
+import psycopg2.errors
 import psycopg2
 import yaml
 
@@ -35,7 +36,11 @@ class Rule(NamedTuple):
 
     def apply(self,
               cursor: psycopg2.extensions.cursor) -> Iterable['RuleResult']:
-        cursor.execute(self.query, self.params)
+        try:
+            cursor.execute(self.query, self.params)
+        except psycopg2.errors.InsufficientPrivilege:
+            cursor.execute(r'ROLLBACK')
+            return iter(())
         names = [name for name, *_ in cursor.description]
         return (
             RuleResult(
