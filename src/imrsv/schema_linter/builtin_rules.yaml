@@ -348,7 +348,9 @@ rules:
       - postgres
       - deprecations
     query: |
-      SELECT schemaname, tablename, rulename
+      SELECT schemaname AS table_schema,
+             tablename AS table_name,
+             rulename AS rule_name
       FROM pg_catalog.pg_rules
       WHERE schemaname NOT LIKE 'pg%'
       ORDER BY schemaname, tablename, rulename
@@ -443,7 +445,8 @@ rules:
     labels:
       - cosmetic
     query: |
-      SELECT st.relname AS table_name,
+      SELECT st.schemaname AS table_schema,
+             st.relname AS table_name,
              c.column_name
       FROM pg_catalog.pg_statio_all_tables
           AS st
@@ -478,12 +481,12 @@ rules:
       updating a few columns), there's a lot of per-row overhead in the NULL
       bitmask, and in general, it's a bit harder to understand.
     query: |
-      SELECT table_name, count(*)
+      SELECT table_schema, table_name, count(*)
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
             table_catalog = 'api'
-      GROUP BY table_name
-      ORDER BY table_name
+      GROUP BY table_schema, table_name
+      ORDER BY table_schema, table_name
 
   imagined-id-defaults:
     severity: warning
@@ -494,7 +497,8 @@ rules:
       IDs SHOULD NOT have default values, whether primary keys or foreign keys
       (enforced or not).
     query: |
-      SELECT table_name, column_name, column_default, is_nullable, data_type
+      SELECT table_schema, table_name,
+             column_name, column_default, is_nullable, data_type
       FROM information_schema.columns
       WHERE column_name LIKE '%\_id' AND
             column_default IS NOT NULL
@@ -510,7 +514,7 @@ rules:
       or you should have a default value and not be NULLable.
       If you do anything else, you probably have a bad type or relation design.
     query: |
-      SELECT table_name, column_name, data_type, column_default
+      SELECT table_schema, table_name, column_name, data_type, column_default
       FROM information_schema.columns
       WHERE is_nullable = 'YES' AND
             column_default IS NOT NULL
@@ -534,11 +538,12 @@ rules:
       And yes, polymorphic associations can have referential integrity,
       even if they have different sequences.
     query: |
-      SELECT columns.table_name,
-            columns.column_name,
-            type_columns.column_name AS type_column,
-            columns.is_nullable,
-            columns.column_default
+      SELECT columns.table_schema,
+             columns.table_name,
+             columns.column_name,
+             type_columns.column_name AS type_column,
+             columns.is_nullable,
+             columns.column_default
       FROM information_schema.columns
       LEFT OUTER JOIN information_schema.key_column_usage
           ON columns.column_name = key_column_usage.column_name
@@ -602,7 +607,8 @@ rules:
       You have to consider though if you change the order overall if the app
       performance is sufficient.
     query: |
-      SELECT table_class.relname AS table_name,
+      SELECT pg_namespace.nspname AS table_schema,
+             table_class.relname AS table_name,
              index_class.relname AS index_name,
              array_agg(pg_attribute.attname
                        ORDER BY pg_index.indkey) AS columns,
@@ -625,7 +631,7 @@ rules:
       INNER JOIN pg_stat_user_tables
           ON pg_stat_user_tables.relid = table_class.oid
       WHERE pg_namespace.nspname = 'public'
-      GROUP BY table_name, index_name
+      GROUP BY table_schema, table_name, index_name
       HAVING count(*) > 1
       ORDER BY table_name, index_name
 
@@ -635,7 +641,9 @@ rules:
     labels:
       - performance
     query: |
-      SELECT relname, indexrelname
+      SELECT schemaname AS table_schema,
+             relname AS table_name,
+             indexrelname AS index_name
       FROM pg_stat_user_indexes
       WHERE idx_scan = 0 AND
             idx_tup_read = 0 AND
@@ -668,7 +676,7 @@ rules:
       data_types_not: []
       udt_names_not: []
     query: |
-      SELECT table_name, column_name, data_type, udt_name
+      SELECT table_schema, table_name, column_name, data_type, udt_name
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
             (data_type = ANY(%(data_types)s) OR
@@ -745,7 +753,7 @@ rules:
       #   - ['table', 'column']
       table_columns: []
     query: |
-      SELECT table_name, column_name
+      SELECT table_schema, table_name, column_name
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
             is_nullable = 'YES' AND
@@ -765,10 +773,11 @@ rules:
       Probably wrong or brittle, other than requiring seed data, assuming
       hardcoded IDs in seed data, or that you use semantic keys.
     query: |
-      SELECT columns.table_name,
-            columns.column_name,
-            columns.is_nullable,
-            columns.column_default
+      SELECT columns.table_schema,
+             columns.table_name,
+             columns.column_name,
+             columns.is_nullable,
+             columns.column_default
       FROM information_schema.columns
       INNER JOIN information_schema.key_column_usage
           ON columns.column_name = key_column_usage.column_name AND
@@ -831,7 +840,8 @@ rules:
       This can bad because you can have practical duplicates if any of these
       columns is NULLable.
     query: |
-      SELECT table_constraints.constraint_name,
+      SELECT table_constraints.table_schema,
+             table_constraints.constraint_name,
              array_agg(columns.column_name) AS nullable_columns
       FROM information_schema.table_constraints
       INNER JOIN information_schema.key_column_usage
@@ -841,9 +851,11 @@ rules:
            key_column_usage.column_name = columns.column_name
       WHERE constraint_type = 'UNIQUE' AND
             is_nullable = 'YES'
-      GROUP BY table_constraints.table_name,
+      GROUP BY table_constraints.table_schema,
+               table_constraints.table_name,
                table_constraints.constraint_name
-      ORDER BY table_constraints.table_name,
+      ORDER BY table_constraints.table_schema,
+               table_constraints.table_name,
                table_constraints.constraint_name
 
   self-referential-table:
