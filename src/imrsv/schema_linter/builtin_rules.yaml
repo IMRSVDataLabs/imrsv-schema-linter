@@ -364,7 +364,7 @@ rules:
       - deprecations
     query: |
       SELECT parent_ns.nspname AS parent_ns, parent.relname AS parent,
-            child_ns.nspname AS child_ns, child.relname AS child
+             child_ns.nspname AS child_ns, child.relname AS child
       FROM pg_inherits
       JOIN pg_class AS parent ON inhparent = parent.oid
       JOIN pg_class AS child ON inhrelid = child.oid
@@ -449,16 +449,16 @@ rules:
              st.relname AS table_name,
              c.column_name
       FROM pg_catalog.pg_statio_all_tables
-          AS st
+        AS st
       INNER JOIN information_schema.columns
-          AS c
-          ON c.table_schema = st.schemaname AND
-             c.table_name = st.relname AND
-             c.table_schema = 'public'
+        AS c
+        ON c.table_schema = st.schemaname AND
+           c.table_name = st.relname AND
+           c.table_schema = 'public'
       LEFT OUTER JOIN pg_catalog.pg_description
-          AS pgd
-          ON pgd.objoid = st.relid AND
-             pgd.objsubid = c.ordinal_position
+        AS pgd
+        ON pgd.objoid = st.relid AND
+           pgd.objsubid = c.ordinal_position
       WHERE nullif(btrim(pgd.description), '') IS NULL
       ORDER BY st.relname, c.ordinal_position
 
@@ -552,9 +552,9 @@ rules:
           ON (columns.table_schema,
               columns.table_name,
               regexp_replace(columns.column_name, '_id$', '_type')) =
-            (type_columns.table_schema,
-              type_columns.table_name,
-              type_columns.column_name)
+             (type_columns.table_schema,
+               type_columns.table_name,
+               type_columns.column_name)
       WHERE columns.table_schema = 'public' AND
             columns.column_name LIKE '%\_id' AND
             key_column_usage.column_name IS NULL
@@ -799,16 +799,16 @@ rules:
       Warn by default for now. Walk it back later.
     query: |
       SELECT min(kcu1.table_name) AS referencing_table,
-            array_agg(kcu1.column_name::text) AS referencing_columns,
-            min(kcu2.table_name) AS referenced_table,
-            array_agg(kcu2.column_name::text) AS referenced_columns,
-            rc.constraint_name AS constraint_name,
-            array_agg(referencing_columns.column_name)
-              FILTER (WHERE referencing_columns.is_nullable = 'YES')
-              AS referencing_nullable,
-            array_agg(referenced_columns.column_name)
-              FILTER (WHERE referenced_columns.is_nullable = 'YES')
-              AS referenced_nullable
+             array_agg(kcu1.column_name::text) AS referencing_columns,
+             min(kcu2.table_name) AS referenced_table,
+             array_agg(kcu2.column_name::text) AS referenced_columns,
+             rc.constraint_name AS constraint_name,
+             array_agg(referencing_columns.column_name)
+               FILTER (WHERE referencing_columns.is_nullable = 'YES')
+               AS referencing_nullable,
+             array_agg(referenced_columns.column_name)
+               FILTER (WHERE referenced_columns.is_nullable = 'YES')
+               AS referenced_nullable
       FROM information_schema.key_column_usage
         AS kcu1
       INNER JOIN information_schema.referential_constraints
