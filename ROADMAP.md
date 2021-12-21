@@ -26,7 +26,15 @@
         + [ ] Also enums, which aren't under `user_defined_types`.
     * [ ] `column1`, `column2` or `spouse1_id`, `spouse2_id`
     * [ ] Too many large objects
-    * [ ] Column names that require quoting
+    * [ ] Names that require quoting
+        + [ ] Databases
+        + [ ] Schemas
+        + [ ] Tables
+        + [ ] Columns
+        + [ ] Procedures
+        + [ ] Types
+        + [ ] Everything else, roles, constraints, domains, etc., everything in
+              `information_schema`, `pg_catalog`, `pg_class`.
     * [X] All, all minus PK, or too many nullable
     * [ ] Table cycles
     * [ ] Table cycles, recursively
@@ -56,16 +64,31 @@
     * [X] `plpythonu` instead of `plpython3u` explicitly
     * [X] Non-IMRSV languages
     * false sense of security `pg_hba_file_rules`
-        [ ] address ≠ all or 127.0.0.1 or ::1
-        [ ] netmask not null or 255.255.255.255 or ffff:…:ffff
-        [X] auth-method md5, password, ident
-        [X] separately warn about pam, bsd, cert for cloud or k8s
-        [X] sspi, why are you running on Windows, what a terrible idea
-        [X] auth-method peer not used on UNIX domain socket
-        [ ] a lot of rules, arbitrary number, may be easy to make mistakes
+        + [ ] address ≠ all or 127.0.0.1 or ::1
+        + [ ] netmask not null or 255.255.255.255 or ffff:…:ffff
+        + [X] auth-method md5, password, ident
+        + [X] separately warn about pam, bsd, cert for cloud or k8s
+        + [X] sspi, why are you running on Windows, what a terrible idea
+        + [X] auth-method peer not used on UNIX domain socket
+        + [ ] a lot of rules, arbitrary number, may be easy to make mistakes
     * [ ] Unenforced constraints?
     * [ ] Disabled triggers?
     * [ ] `ON UPDATE` on surrogate key
+    * [ ] Owned by `postgres`
+        + [ ] If possible runtime owner by role other than migration role
+    * [ ] `SECURITY DEFINER`
+    * [ ] Type warnings and errors per non-column objects:
+        + [ ] procedure args
+        + [ ] procedure return values
+        + [ ] Type subclasses
+        + [ ] Type conversions
+        + [ ] Operators
+    * [ ] Too many triggers to be tractable
+    * [ ] For each row instead of for each statement trigger
+    * [ ] Groups with `LOGIN`
+    * [ ] Roles with `LOGIN`
+    * [ ] Groups instead of roles
+    * [ ] `?column?`s
 - [ ] User config files.
 - [ ] Generic schema/table/column filtering.
 - [ ] Properly handle schemas instead of assuming `public`.
