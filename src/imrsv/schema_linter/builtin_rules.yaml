@@ -90,7 +90,7 @@ rules:
       - minor
     comment: We do not care for “table dual”, use (SELECT); then.
     query: |
-      SELECT tables.table_schema, tables.table_name
+      SELECT tables.table_schema AS schema_name, tables.table_name
       FROM information_schema.tables
       LEFT JOIN information_schema.columns
         ON (tables.table_schema, tables.table_name) =
@@ -109,12 +109,12 @@ rules:
       # just have a "variable" impact?
     comment: May conflict with pseudo-enums, fake tables, etc.
     query: |
-      SELECT table_schema, table_name
+      SELECT table_schema AS schema_name, table_name
       FROM information_schema.columns
       WHERE table_schema = 'public'
       GROUP BY table_schema, table_name
       HAVING count(*) = 1
-      ORDER BY table_schema, table_name
+      ORDER BY 1, 2
 
   all-nullable:
     severity: warning
@@ -127,7 +127,7 @@ rules:
     query: |
       SELECT *
       FROM (
-        SELECT columns.table_schema, columns.table_name,
+        SELECT columns.table_schema AS schema_name, columns.table_name,
                count(columns.column_name)
                  FILTER (WHERE ccu IS NULL AND
                                is_nullable = 'YES')
@@ -170,14 +170,14 @@ rules:
       - minor
     comment: May interfere with column Tetris
     query: |
-      SELECT table_schema, table_name,
+      SELECT table_schema AS schema_name, table_name,
              array_agg(column_name ORDER BY ordinal_position)
                AS column_names,
              array_agg(ordinal_position ORDER BY ordinal_position)
                AS ordinal_positions
       FROM (
         SELECT c.table_schema, c.table_name, c.column_name, c.ordinal_position,
-              count(*) OVER w
+               count(*) OVER w
         FROM information_schema.columns
           AS c
         JOIN information_schema.table_constraints
@@ -208,7 +208,7 @@ rules:
       # - variable
       - correctness
     query: |
-      SELECT DISTINCT table_schema, table_name
+      SELECT DISTINCT table_schema AS schema_name, table_name
       FROM information_schema.tables
       WHERE table_schema <> 'information_schema' AND
             table_schema NOT LIKE 'pg%' AND
@@ -217,7 +217,7 @@ rules:
       SELECT table_schema, table_name
       FROM information_schema.table_constraints
       WHERE constraint_type = 'PRIMARY KEY'
-      ORDER BY table_schema, table_name
+      ORDER BY 1, 2
 
   non-generated-pk:
     severity: warning
@@ -226,7 +226,8 @@ rules:
       - hitandmiss
       - correctness
     query: |
-      SELECT columns.table_schema, columns.table_name, column_default
+      SELECT columns.table_schema AS schema_name, columns.table_name,
+             columns.column_name, column_default
       FROM information_schema.columns
       JOIN information_schema.table_constraints
         ON (columns.table_schema, columns.table_name) =
@@ -239,7 +240,7 @@ rules:
            (columns.table_schema, columns.table_name, columns.column_name,
             table_constraints.constraint_name)
       WHERE is_generated = 'NEVER' AND column_default IS NOT NULL
-      ORDER BY 1, 2, 3
+      ORDER BY 1, 2
 
   non-always-pk:
     severity: warning
@@ -248,8 +249,8 @@ rules:
       - correctness
       - subjective
     query: |
-      SELECT columns.table_schema, columns.table_name, columns.column_name,
-             columns.identity_generation
+      SELECT columns.table_schema AS schema_name, columns.table_name,
+             columns.column_name, columns.identity_generation
       FROM information_schema.columns
       JOIN information_schema.table_constraints
         ON (columns.table_schema, columns.table_name) =
@@ -274,7 +275,7 @@ rules:
       Your number of rows matters not. It's the total lifetime of the
       application divided by the row churn.
     query: |
-      SELECT c.table_schema, c.table_name, c.column_name,
+      SELECT c.table_schema AS schema_name, c.table_name, c.column_name,
              c.data_type, c.udt_name
       FROM information_schema.columns
         AS c
@@ -330,8 +331,8 @@ rules:
       - correctness
       - consistency
     query: |
-      SELECT columns.column_name, columns.table_schema, columns.table_name,
-             column_default
+      SELECT columns.column_name, columns.table_schema AS schema_name,
+             columns.table_name, column_default
       FROM information_schema.columns
       JOIN (
         SELECT column_name
@@ -350,7 +351,7 @@ rules:
       - postgres
       - deprecations
     query: |
-      SELECT schemaname AS table_schema,
+      SELECT schemaname AS schema_name,
              tablename AS table_name,
              rulename AS rule_name
       FROM pg_catalog.pg_rules
@@ -421,8 +422,8 @@ rules:
     labels:
       - correctness
     query: |
-      SELECT table_schema, table_name, column_name, column_default,
-             new AS better_default, reason
+      SELECT table_schema AS schema_name, table_name, column_name,
+             column_default, new AS better_default, reason
       FROM information_schema.columns
       JOIN (VALUES ('now()',
                     'CURRENT_TIMESTAMP',
@@ -447,7 +448,7 @@ rules:
     labels:
       - cosmetic
     query: |
-      SELECT st.schemaname AS table_schema,
+      SELECT st.schemaname AS schema_name,
              st.relname AS table_name,
              c.column_name
       FROM pg_catalog.pg_statio_all_tables
@@ -483,12 +484,12 @@ rules:
       updating a few columns), there's a lot of per-row overhead in the NULL
       bitmask, and in general, it's a bit harder to understand.
     query: |
-      SELECT table_schema, table_name, count(*)
+      SELECT table_schema AS schema_name, table_name, count(*)
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
             table_catalog = 'api'
       GROUP BY table_schema, table_name
-      ORDER BY table_schema, table_name
+      ORDER BY 1, 2
 
   imagined-id-defaults:
     severity: warning
@@ -499,7 +500,7 @@ rules:
       IDs SHOULD NOT have default values, whether primary keys or foreign keys
       (enforced or not).
     query: |
-      SELECT table_schema, table_name,
+      SELECT table_schema AS schema_name, table_name,
              column_name, column_default, is_nullable, data_type
       FROM information_schema.columns
       WHERE column_name LIKE '%\_id' AND
@@ -516,7 +517,8 @@ rules:
       or you should have a default value and not be NULLable.
       If you do anything else, you probably have a bad type or relation design.
     query: |
-      SELECT table_schema, table_name, column_name, data_type, column_default
+      SELECT table_schema AS schema_name, table_name,
+             column_name, data_type, column_default
       FROM information_schema.columns
       WHERE is_nullable = 'YES' AND
             column_default IS NOT NULL
@@ -540,7 +542,7 @@ rules:
       And yes, polymorphic associations can have referential integrity,
       even if they have different sequences.
     query: |
-      SELECT columns.table_schema,
+      SELECT columns.table_schema AS schema_name,
              columns.table_name,
              columns.column_name,
              type_columns.column_name AS type_column,
@@ -609,7 +611,7 @@ rules:
       You have to consider though if you change the order overall if the app
       performance is sufficient.
     query: |
-      SELECT pg_namespace.nspname AS table_schema,
+      SELECT pg_namespace.nspname AS schema_name,
              table_class.relname AS table_name,
              index_class.relname AS index_name,
              array_agg(pg_attribute.attname
@@ -633,9 +635,9 @@ rules:
       INNER JOIN pg_stat_user_tables
           ON pg_stat_user_tables.relid = table_class.oid
       WHERE pg_namespace.nspname = 'public'
-      GROUP BY table_schema, table_name, index_name
+      GROUP BY schema_name, table_name, index_name
       HAVING count(*) > 1
-      ORDER BY table_name, index_name
+      ORDER BY schema_name, table_name, index_name
 
   unused-indexes:
     severity: warning
@@ -643,7 +645,7 @@ rules:
     labels:
       - performance
     query: |
-      SELECT schemaname AS table_schema,
+      SELECT schemaname AS schema_name,
              relname AS table_name,
              indexrelname AS index_name
       FROM pg_stat_user_indexes
@@ -678,7 +680,8 @@ rules:
       data_types_not: []
       udt_names_not: []
     query: |
-      SELECT table_schema, table_name, column_name, data_type, udt_name
+      SELECT table_schema AS schema_name, table_name,
+             column_name, data_type, udt_name
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
             (data_type = ANY(%(data_types)s) OR
@@ -710,7 +713,8 @@ rules:
       udt_names_not: []
       allow_pg_internal: false
     query: |
-      SELECT table_schema, table_name, column_name, data_type, udt_name
+      SELECT table_schema AS schema_name, table_name,
+             column_name, data_type, udt_name
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
 
@@ -733,7 +737,8 @@ rules:
       need to be robust against oversized inputs and you are OK with the lack
       of warnnig.
     query:
-      SELECT table_schema, table_name, column_name, character_maximum_length
+      SELECT table_schema AS schema_name, table_name,
+             column_name, character_maximum_length
       FROM information_schema.columns
       WHERE character_maximum_length IS NOT NULL AND
             table_schema = 'public'
@@ -755,7 +760,7 @@ rules:
       #   - ['table', 'column']
       table_columns: []
     query: |
-      SELECT table_schema, table_name, column_name
+      SELECT table_schema AS schema_name, table_name, column_name
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
             is_nullable = 'YES' AND
@@ -775,7 +780,7 @@ rules:
       Probably wrong or brittle, other than requiring seed data, assuming
       hardcoded IDs in seed data, or that you use semantic keys.
     query: |
-      SELECT columns.table_schema,
+      SELECT columns.table_schema AS schema_name,
              columns.table_name,
              columns.column_name,
              columns.is_nullable,
@@ -842,7 +847,7 @@ rules:
       This can bad because you can have practical duplicates if any of these
       columns is NULLable.
     query: |
-      SELECT table_constraints.table_schema,
+      SELECT table_constraints.table_schema AS schema_name,
              table_constraints.constraint_name,
              array_agg(columns.column_name) AS nullable_columns
       FROM information_schema.table_constraints
@@ -869,7 +874,8 @@ rules:
       Possibly not what you want. Depends on your tree or other datastructure
       design pattern.
     query: |
-      SELECT fkey.table_schema, fkey.table_name, fkey.constraint_name
+      SELECT fkey.table_schema AS schema_name, fkey.table_name,
+             fkey.constraint_name
       FROM information_schema.referential_constraints
         AS rc
       JOIN information_schema.table_constraints
@@ -896,7 +902,7 @@ rules:
         - schema_migrations  # Ruby Rails
       additional_known: []
     query: |
-      SELECT DISTINCT tables.table_schema, tables.table_name
+      SELECT DISTINCT tables.table_schema AS schema_name, tables.table_name
       FROM information_schema.tables
       LEFT JOIN (
         SELECT DISTINCT tc.table_schema, tc.table_name
@@ -1038,7 +1044,7 @@ rules:
       May not be relevant for small reference tables, though those really
       should have a UNIQUE or PRIMARY KEY.
     query:
-      SELECT table_schema, table_name
+      SELECT table_schema AS schema_name, table_name
       FROM information_schema.tables
       JOIN pg_namespace
         ON table_schema = pg_namespace.nspname
@@ -1066,7 +1072,7 @@ rules:
       - postgres
       - performance
     query:
-      SELECT nspname AS table_schema,
+      SELECT nspname AS schema_name,
              relname AS table_name,
              min(attnames) AS table_columns,
              min(indnames) AS index_names
@@ -1108,7 +1114,7 @@ rules:
       # Trying to be liberal enough so as to not trigger for most real users.
       column_max: 50
     query: |
-      SELECT table_schema, table_name, count(*)
+      SELECT table_schema AS schema_name, table_name, count(*)
       FROM information_schema.columns
       WHERE table_schema = 'public'
       GROUP BY 1, 2
@@ -1124,7 +1130,7 @@ rules:
     # Yes, table_schema even if we don't deal with tables here, because it's
     # globally optimal, locally suboptimal.
     query: |
-      SELECT pg_namespace.nspname AS table_schema
+      SELECT pg_namespace.nspname AS schema_name
       FROM pg_namespace
       LEFT JOIN pg_description
         ON pg_description.objoid = pg_namespace.oid
@@ -1139,7 +1145,7 @@ rules:
       - cosmetic
       - postgres
     query: |
-      SELECT pg_namespace.nspname AS table_schema,
+      SELECT pg_namespace.nspname AS schema_name,
              pg_class.relname AS table_name
       FROM pg_class
       JOIN pg_namespace
@@ -1189,7 +1195,7 @@ rules:
       - cosmetic
       - postgres
     query: |
-      SELECT table_schema, table_name
+      SELECT table_schema AS schema_name, table_name
       FROM information_schema.tables
       WHERE table_schema = 'public' AND
             table_name <> quote_ident(table_name)
@@ -1202,7 +1208,7 @@ rules:
       - cosmetic
       - postgres
     query: |
-      SELECT table_schema, table_name, column_name
+      SELECT table_schema AS schema_name, table_name, column_name
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
             column_name <> quote_ident(column_name)

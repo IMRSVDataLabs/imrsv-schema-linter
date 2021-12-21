@@ -78,7 +78,7 @@ def print_results(results: List[RuleResult]) -> None:
 
 
 stc_sort_cols = [
-    'table_schema',
+    'schema_name',
     'table_name',
     'column_name',
 
