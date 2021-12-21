@@ -17,10 +17,10 @@
     * [X] `password_encryption` `scram-sha-256`
     * [X] Inconsistent PK types across the whole schema or database
     * [ ] Other uncommented DB objects:
-        + [ ] Tables and views
-        + [ ] Schemas
+        + [X] Tables and views
+        + [X] Schemas
         + [ ] The current database
-        + [ ] Functions, procedures (yes, like a docstring)
+        + [X] Functions, procedures (yes, like a docstring)
         + [ ] The other types at the notice level.
     * [ ] Duplicate relationships
     * [X] Disconnected table

@@ -1110,3 +1110,56 @@ rules:
       WHERE table_schema = 'public'
       GROUP BY 1, 2
       HAVING count(*) > %(column_max)s
+
+  uncommented-schema:
+    severity: notice
+    title: Uncommented SQL schema
+    labels:
+      - cosmetic
+      - postgres
+    # Yes, table_schema even if we don't deal with tables here, because it's
+    # globally optimal, locally suboptimal.
+    query: |
+      SELECT pg_namespace.nspname AS table_schema
+      FROM pg_namespace
+      LEFT JOIN pg_description
+        ON pg_description.objoid = pg_namespace.oid
+      WHERE nspname = 'public' AND
+            pg_description IS NULL
+      ORDER BY 1
+
+  uncommented-table:
+    severity: notice
+    title: Uncommented table
+    labels:
+      - cosmetic
+      - postgres
+    query: |
+      SELECT pg_namespace.nspname AS table_schema,
+             pg_class.relname AS table_name
+      FROM pg_class
+      JOIN pg_namespace
+        ON pg_class.relnamespace = pg_namespace.oid AND
+           pg_namespace.nspname = 'public'
+      LEFT JOIN pg_description
+        ON pg_description.objoid = pg_namespace.oid
+      WHERE pg_description IS NULL
+      ORDER BY 1, 2
+
+  uncommented-procedure:
+    severity: notice
+    title: Uncommented procedure
+    labels:
+      - postgres
+      - cosmetic
+    query: |
+      SELECT nspname AS schema_name,
+             proname AS procedure_name
+      FROM pg_proc
+      JOIN pg_namespace
+        ON pg_namespace.oid = pg_proc.pronamespace AND
+           pg_namespace.nspname = 'public'
+      LEFT JOIN pg_description
+        ON pg_description.objoid = pg_proc.oid
+      WHERE pg_description IS NULL
+      ORDER BY 1, 2
