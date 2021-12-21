@@ -3,7 +3,9 @@
     * [X] One column
     * [ ] No surrogate PK
     * [X] PK not first
-    * [ ] Too many columns
+    * [X] Too many columns
+        + [ ] Also for views
+    * [ ] Huge number of procedure args
     * [ ] Attribute-less join tables with a surrogate key
     * [X] All tables have a primary key
     * [X] No PG rules

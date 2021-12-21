@@ -1089,3 +1089,24 @@ rules:
             GROUP BY 1, 2, 3) q
       GROUP BY 1, 2
       HAVING count(*) > 1;
+
+  too-many-columns:
+    severity: notice
+    title: Too many columns
+    labels:
+      - correctness
+      - hitandmiss
+    comment: |
+      Can result in expensive writes unless proportionately always updating
+      most of them.
+
+      Can also be a sign of insufficient or incorrect normalization.
+    params:
+      # Trying to be liberal enough so as to not trigger for most real users.
+      column_max: 50
+    query: |
+      SELECT table_schema, table_name, count(*)
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+      GROUP BY 1, 2
+      HAVING count(*) > %(column_max)s
