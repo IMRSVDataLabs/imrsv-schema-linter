@@ -1163,3 +1163,56 @@ rules:
         ON pg_description.objoid = pg_proc.oid
       WHERE pg_description IS NULL
       ORDER BY 1, 2
+
+  quoted-schema-name:
+    severity: warning
+    title: Schema name that requires quoting
+    labels:
+      - cosmetic
+      # Requires PG function quote_ident()
+      - postgres
+    query: |
+      SELECT schema_name
+      FROM information_schema.schemata
+      -- TODO: Schema filter
+      WHERE schema_name <> quote_ident(schema_name)
+      ORDER BY 1
+
+  quoted-table-name:
+    severity: warning
+    title: Column name that requires quoting
+    labels:
+      - cosmetic
+      - postgres
+    query: |
+      SELECT table_schema, table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public' AND
+            table_name <> quote_ident(table_name)
+      ORDER BY 1, 2
+
+  quoted-column-name:
+    severity: warning
+    title: Column name that requires quoting
+    labels:
+      - cosmetic
+      - postgres
+    query: |
+      SELECT table_schema, table_name, column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND
+            column_name <> quote_ident(column_name)
+      ORDER BY 1, 2, 3
+
+  quoted-procedure-name:
+    severity: warning
+    title: Procedure name that requires quoting
+    labels:
+      - cosmetic
+      - postgres
+    query: |
+      SELECT routine_schema AS procedure_schema,
+             routine_name
+      FROM information_schema.routines
+      WHERE routine_schema = 'public' AND
+            routine_name <> quote_ident(routine_name)

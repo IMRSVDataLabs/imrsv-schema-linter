@@ -30,10 +30,10 @@
     * [ ] Too many large objects
     * [ ] Names that require quoting
         + [ ] Databases
-        + [ ] Schemas
-        + [ ] Tables
-        + [ ] Columns
-        + [ ] Procedures
+        + [X] Schemas
+        + [X] Tables
+        + [X] Columns
+        + [X] Procedures
         + [ ] Types
         + [ ] Everything else, roles, constraints, domains, etc., everything in
               `information_schema`, `pg_catalog`, `pg_class`.
