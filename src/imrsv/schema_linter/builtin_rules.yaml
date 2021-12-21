@@ -1034,7 +1034,7 @@ rules:
 
   unindexed-table:
     severity: warning
-    title: Unindexed title
+    title: Unindexed table
     labels:
       - proprietary
       - postgres
