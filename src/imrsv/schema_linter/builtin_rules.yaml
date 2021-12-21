@@ -157,6 +157,7 @@ rules:
       ) AS cc
       WHERE columns - nonpk_nullable = pk_columns AND
             nonpk_nullable > 0
+      ORDER BY 1, 2
 
   # TODO: Introduce Python-side matches?
 
@@ -197,6 +198,7 @@ rules:
       ) AS pks
       WHERE ordinal_position > count
       GROUP BY table_schema, table_name
+      ORDER BY 1, 2
 
   no-primary-key:
     severity: warning
@@ -370,7 +372,7 @@ rules:
       JOIN pg_class AS child ON inhrelid = child.oid
       JOIN pg_namespace AS parent_ns ON parent.relnamespace = parent_ns.oid
       JOIN pg_namespace AS child_ns ON child.relnamespace = child_ns.oid
-      ORDER BY parent_ns.nspname, parent.relname, inhseqno;
+      ORDER BY parent_ns.nspname, parent.relname, inhseqno
 
   server-encoding:
     severity: error
@@ -1088,7 +1090,8 @@ rules:
             WHERE nspname = 'public'
             GROUP BY 1, 2, 3) q
       GROUP BY 1, 2
-      HAVING count(*) > 1;
+      HAVING count(*) > 1
+      ORDER BY 1, 2, 3
 
   too-many-columns:
     severity: notice
@@ -1110,6 +1113,7 @@ rules:
       WHERE table_schema = 'public'
       GROUP BY 1, 2
       HAVING count(*) > %(column_max)s
+      ORDER BY 1, 2
 
   uncommented-schema:
     severity: notice
@@ -1216,3 +1220,4 @@ rules:
       FROM information_schema.routines
       WHERE routine_schema = 'public' AND
             routine_name <> quote_ident(routine_name)
+      ORDER BY 1, 2
