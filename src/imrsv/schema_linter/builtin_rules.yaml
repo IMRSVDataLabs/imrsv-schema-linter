@@ -887,6 +887,12 @@ rules:
     title: Tables without a reference to at least another one
     labels:
       - correctness
+    params:
+      known_disconnected:
+        - alembic_version  # Python Alembic
+        - ar_internal_metadata  # Ruby Rails
+        - schema_migrations  # Ruby Rails
+      additional_known: []
     query: |
       SELECT DISTINCT tables.table_schema, tables.table_name
       FROM information_schema.tables
@@ -902,7 +908,9 @@ rules:
       ) AS fked
         ON (tables.table_schema, tables.table_name) =
            (fked.table_schema, fked.table_name)
-      WHERE fked IS NULL AND tables.table_schema = 'public'
+      WHERE fked IS NULL AND tables.table_schema = 'public' AND
+            -- FIXME: Doesn't work
+            tables.table_name <> ALL(%(known_disconnected)s)
       ORDER BY 1, 2
 
   forbidden-routine-language:
