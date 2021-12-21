@@ -1221,3 +1221,23 @@ rules:
       WHERE routine_schema = 'public' AND
             routine_name <> quote_ident(routine_name)
       ORDER BY 1, 2
+
+  # TODO: information_schema.routines instead
+  security-definer-procedure:
+    severity: notice
+    title: SECURITY DEFINER procedure
+    labels:
+      - postgres
+      - security
+    query: |
+      SELECT pg_namespace.nspname AS schema_name,
+             pg_proc.proname AS procedure_name,
+             pg_roles.rolname AS owner_name
+      FROM pg_proc
+      JOIN pg_namespace
+        ON pg_namespace.oid = pg_proc.pronamespace AND
+           pg_namespace.nspname = 'public'
+      JOIN pg_roles
+        ON pg_roles.oid = pg_proc.proowner
+      WHERE prosecdef
+      ORDER BY 1, 2
