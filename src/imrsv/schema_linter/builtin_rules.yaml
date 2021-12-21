@@ -738,7 +738,7 @@ rules:
       ORDER BY 1, 2, 3
 
   nullable-columns:
-    severity: error
+    severity: notice
     title: Columns that are NULLable
     labels:
       - correctness
