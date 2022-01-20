@@ -524,6 +524,35 @@ rules:
             column_default IS NOT NULL
       ORDER BY table_name, column_name
 
+  nullable-conventional-timestamps:
+    severity: error
+    title: Nullable conventional timestamps
+    labels:
+      - correctness
+    query: |
+      SELECT table_schema AS schema_name, table_name, column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND
+            is_nullable = 'YES' AND
+            column_name IN ('created_at', 'updated_at', 'last_modified_at')
+      ORDER BY 1, 2, 3
+
+  nullable-booleans:
+    severity: warning
+    title: Nullable boolean
+    labels:
+      - correctness
+    comment:
+      You're even less likely to want 3VL with booleans with other data types.
+      Be true or false, especially when there's a default value.
+    query: |
+      SELECT table_schema AS schema_name, table_name, column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND
+            is_nullable = 'YES' AND
+            data_type = 'boolean'
+      ORDER BY 1, 2, 3
+
   # Not typical. Really only seen in two 3rd party projects.
   unenforced-foreign-keys:
     severity: error
