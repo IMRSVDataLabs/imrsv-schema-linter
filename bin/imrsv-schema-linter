@@ -122,7 +122,16 @@ def show_results(args: argparse.Namespace, results: List[RuleResult]) -> None:
 def show_rules(args: argparse.Namespace) -> None:
     for rule_id, rule in Ruleset.DEFAULT.rules.items():
         if logger.isEnabledFor(rule.severity.value):
-            print(rule.severity.name[0].upper(), rule_id, rule.title)
+            if args.format == 'print':
+                print(rule.severity.name[0].upper(), rule_id, rule.title,
+                    '[' + ','.join(rule.labels) + ']')
+            elif args.format == 'logfmt':
+                print(f'severity={rule.severity.name.upper()}',
+                      f'id={rule_id}',
+                      f'title={rule.title!r}',
+                      f'labels={",".join(rule.labels)}')
+            else:
+                raise NotImplementedError()
 
 
 def show_labels(args: argparse.Namespace) -> None:
@@ -134,8 +143,14 @@ def show_labels(args: argparse.Namespace) -> None:
         for label
         in rule.labels
     }
-    for label in sorted(labels):
-        print(label)
+    if args.format == 'print':
+        for label in sorted(labels):
+            print(label)
+    elif args.format == 'logfmt':
+        for label in sorted(labels):
+            print('label', label, sep='=')
+    else:
+        raise NotImplementedError()
 
 
 def main(args: argparse.Namespace) -> None:
