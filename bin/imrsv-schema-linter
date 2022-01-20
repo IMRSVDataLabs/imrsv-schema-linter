@@ -1,7 +1,10 @@
 #! /usr/bin/env python3
 
 '''
-TODO
+Connect to a PostgreSQL DB and lint schema, and only the schema
+
+- Mostly inspect information_schema
+- Inspect a few things in pg_catalog
 '''
 
 from contextlib import contextmanager, redirect_stdout
