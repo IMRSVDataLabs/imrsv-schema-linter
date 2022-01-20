@@ -5,3 +5,4 @@ htmlcov
 *.py[co]
 __pycache__
 .schema_linter.yaml
+tags
