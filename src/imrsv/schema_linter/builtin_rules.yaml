@@ -735,7 +735,7 @@ rules:
       Consider TEXT instead, or make sure you have proper truncation
       detection/warnings/errors client-side. VARCHAR(n) is OK if you explicitly
       need to be robust against oversized inputs and you are OK with the lack
-      of warnnig.
+      of warnig.
     query:
       SELECT table_schema AS schema_name, table_name,
              column_name, character_maximum_length

@@ -123,7 +123,7 @@ seems to focus on things like invalid options to `ALTER TABLE`.
 
 This list also does not include operational tools, e.g., checking I/O
 performance, slow queries, or any random but great visualizer like
-pgBadger or pg_top, etc.
+pgBadger or `pg_top`, etc.
 
 
 [@pilona]: https://github.com/pilona "Alex Pilon"
