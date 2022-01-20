@@ -46,7 +46,6 @@
     * [ ] All PK (NOTICE)
     * [X] Not `bigint` PK
     * [ ] Column Tetris
-    * [ ] Unindexed foreign and primary keys
     * [ ] Redundant index when composite prefix will do
     * [ ] Run views, functions/procedures, defaults, and generated through a query linter.
     * [X] Deprecated extensions
