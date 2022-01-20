@@ -1276,3 +1276,17 @@ rules:
         ON pg_roles.oid = pg_proc.proowner
       WHERE prosecdef
       ORDER BY 1, 2
+
+  unnamed-column:
+    severity: error
+    title: Unnamed column (?column?)
+    labels:
+      - postgres
+      - cosmetic
+      - correctness
+    query: |
+      SELECT table_schema AS schema_name, table_name, column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND
+            column_name = '?column?'
+      ORDER BY 1, 2, 3
