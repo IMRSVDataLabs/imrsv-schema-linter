@@ -58,6 +58,9 @@ def autopage() -> Iterator[None]:
 
 def log_results(results: List[RuleResult]) -> None:
     for result in results:
+        # TODO: Push to rule filter unless we have variable severity rules.
+        if not logger.isEnabledFor(result.severity.value):
+            continue
         # TODO: Proper logfmt.
         # TODO: DictCursor instead and sub in
         level, fmt, subs = result.logfmt()
@@ -67,6 +70,9 @@ def log_results(results: List[RuleResult]) -> None:
 # TODO: Pretty
 def print_results(results: List[RuleResult]) -> None:
     for result in results:
+        # TODO: Push to rule filter unless we have variable severity rules.
+        if not logger.isEnabledFor(result.severity.value):
+            continue
         print(result.severity.name[0].upper(), result.rule,
               *result.offender.values())
         if logger.isEnabledFor(logging.DEBUG):
