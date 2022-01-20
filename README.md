@@ -45,6 +45,8 @@ Does not relieve you of the burden of properly:
   performance characteristics, such as it being copy-on-write (CoW),
   heap-only-tuple updates (HOT), out of line storage (TOAST), or
   statistics, estimates, and the query planner
+- understanding security, all relevant background, and being able to thing
+  recursively
 
 The linter does not verify SQL code in any way, nor does it understand how, how
 often, and how much of which data in particular you access, much less

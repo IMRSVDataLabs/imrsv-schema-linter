@@ -90,6 +90,10 @@
     * [ ] Roles with `LOGIN`
     * [ ] Groups instead of roles
     * [ ] `?column?`s
+    * [ ] Anything relevant in the
+      [specific](https://www.stigviewer.com/stig/postgresql_9.x/) or
+      [generic](https://www.stigviewer.com/stig/database_security_requirements_guide/)
+      DISA STIGs.
 - [ ] User config files.
 - [ ] Generic schema/table/column filtering.
 - [ ] Properly handle schemas instead of assuming `public`.
