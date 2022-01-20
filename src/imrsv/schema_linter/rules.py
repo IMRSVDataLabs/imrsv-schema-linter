@@ -64,7 +64,8 @@ class Ruleset(NamedTuple):
     root: bool = False
 
     @classmethod
-    @property
+    # TODO: Re-enable once critical userbase is entirely on ≥ 3.9
+    #@property
     def DEFAULT(cls) -> 'Ruleset':
         return cls.loads(
             importlib.resources.read_text('imrsv.schema_linter',

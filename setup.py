@@ -14,7 +14,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     url='https://github.com/IMRSVDataLabs/imrsv-schema-linter',
-    python_requires='~=3.9',
+    python_requires='~=3.8',
     install_requires=[
         'psycopg2',
         'pyyaml',

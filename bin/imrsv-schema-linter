@@ -120,7 +120,7 @@ def show_results(args: argparse.Namespace, results: List[RuleResult]) -> None:
 
 
 def show_rules(args: argparse.Namespace) -> None:
-    for rule_id, rule in Ruleset.DEFAULT.rules.items():
+    for rule_id, rule in Ruleset.DEFAULT().rules.items():
         if logger.isEnabledFor(rule.severity.value):
             if args.format == 'print':
                 print(rule.severity.name[0].upper(), rule_id, rule.title,
@@ -138,7 +138,7 @@ def show_labels(args: argparse.Namespace) -> None:
     labels = {
         label
         for rule_id, rule
-        in Ruleset.DEFAULT.rules.items()
+        in Ruleset.DEFAULT().rules.items()
         if logger.isEnabledFor(rule.severity.value)
         for label
         in rule.labels
@@ -171,7 +171,7 @@ def main(args: argparse.Namespace) -> None:
             with autopage():
                 show_results(
                     args,
-                    apply_rules(cursor, Ruleset.DEFAULT.rules.values())
+                    apply_rules(cursor, Ruleset.DEFAULT().rules.values())
                 )
 
 

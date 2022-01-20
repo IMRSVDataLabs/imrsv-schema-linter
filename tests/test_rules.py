@@ -3,7 +3,7 @@ from imrsv.schema_linter.rules import Ruleset
 import pytest
 
 
-_default = Ruleset.DEFAULT
+_default = Ruleset.DEFAULT()
 
 
 @pytest.mark.parametrize('rule', _default.rules)
