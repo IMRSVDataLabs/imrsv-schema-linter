@@ -447,6 +447,8 @@ rules:
     title: Columns without a COMMENT (description)
     labels:
       - cosmetic
+      - postgres
+      - proprietary
     query: |
       SELECT st.schemaname AS schema_name,
              st.relname AS table_name,
@@ -1156,6 +1158,7 @@ rules:
     labels:
       - cosmetic
       - postgres
+      - proprietary
     # Yes, table_schema even if we don't deal with tables here, because it's
     # globally optimal, locally suboptimal.
     query: |
@@ -1173,6 +1176,7 @@ rules:
     labels:
       - cosmetic
       - postgres
+      - proprietary
     query: |
       SELECT pg_namespace.nspname AS schema_name,
              pg_class.relname AS table_name
@@ -1190,6 +1194,7 @@ rules:
     title: Uncommented procedure
     labels:
       - postgres
+      - proprietary
       - cosmetic
     query: |
       SELECT nspname AS schema_name,
@@ -1284,6 +1289,7 @@ rules:
     labels:
       - security
       - postgres
+      - proprietary
     comment: |
       If you do this, you can't as safely delegate the ability to modify the
       schema (e.g., DB “migrations”).
@@ -1317,6 +1323,7 @@ rules:
     title: Unnamed column (?column?)
     labels:
       - postgres
+      - proprietary
       - cosmetic
       - correctness
     query: |
