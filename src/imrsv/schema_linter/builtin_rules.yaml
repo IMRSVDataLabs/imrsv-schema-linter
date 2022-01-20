@@ -1235,8 +1235,7 @@ rules:
       LEFT JOIN pg_description
         ON pg_description.objoid = pg_database.oid
       WHERE pg_description IS NULL AND
-            pg_database.datname NOT IN ('template0', 'template1', 'postgres')
-      ORDER BY 1
+            pg_database.datname = current_database()
 
   quoted-schema-name:
     severity: warning
