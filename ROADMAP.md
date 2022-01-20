@@ -94,6 +94,8 @@
       [specific](https://www.stigviewer.com/stig/postgresql_9.x/) or
       [generic](https://www.stigviewer.com/stig/database_security_requirements_guide/)
       DISA STIGs.
+    * [ ] CIS benchmark or just recommend [Puppet/`pg_secured`][pg_secured] or
+      [EasyAppSecurity/postgres-baseline][postgres-baseline]?
 - [ ] User config files.
 - [ ] Generic schema/table/column filtering.
 - [ ] Properly handle schemas instead of assuming `public`.
@@ -112,3 +114,6 @@
 - [ ] Rule filtering and selection based on rule attributes or a glob.
 - [ ] logfmt all logs, not just rule violations.
     * [ ] Also JSON format.
+
+[pg_secured]: https://forge.puppet.com/modules/enterprisemodules/pg_secured
+[postgres-baseline]: https://github.com/EasyAppSecurity/postgres-baseline
