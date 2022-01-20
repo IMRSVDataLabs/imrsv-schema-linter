@@ -1237,6 +1237,19 @@ rules:
       WHERE pg_description IS NULL AND
             pg_database.datname = current_database()
 
+  quoted-database-name:
+    severity: warning
+    title: Database name that requires quoting
+    labels:
+      - cosmetic
+      # Requires PG function quote_ident()
+      - postgres
+    query: |
+      SELECT catalog_name AS database_name
+      FROM information_schema.information_schema_catalog_name
+      WHERE catalog_name <> quote_ident(catalog_name)
+      ORDER BY 1
+
   quoted-schema-name:
     severity: warning
     title: Schema name that requires quoting
