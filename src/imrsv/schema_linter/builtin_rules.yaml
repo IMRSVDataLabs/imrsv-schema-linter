@@ -5,6 +5,20 @@
 ---
 root: false
 rules:
+  dont-lint-postgres:
+    severity: warning
+    title: Attempting to lint default postgres user (SUPERUSER) database
+    labels:
+      - postgres
+      - proprietary
+      - security
+    comment: |
+      You should start your databases from a clean slate and you should
+      definitely not run everything as SUPERUSER.
+    query: |
+      SELECT current_database() AS database_name
+      WHERE current_database() = 'postgres'
+
   no-trust-auth-over-ip:
     severity: error
     title: Trust authentication over inet
