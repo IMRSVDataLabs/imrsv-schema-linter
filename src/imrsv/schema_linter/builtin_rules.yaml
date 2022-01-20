@@ -96,6 +96,56 @@ rules:
       WHERE auth_method IN ('pam', 'bsd')
       ORDER BY line_number
 
+  unencrypted-authentication:
+    severity: warning
+    title: Unencrypted authentication
+    labels:
+      - server
+      - security
+    comment: |
+      Only acceptable if TLS termination is external but the transport between
+      the terminator and Postgres is sufficiently secure.
+    # TODO: Handle the 127/8 obscure case.
+    query: |
+      SELECT *
+      FROM pg_catalog.pg_hba_file_rules
+      WHERE type NOT IN ('local', 'hostssl', 'hostgssenc') AND
+            address NOT IN ('localhost', '127.0.0.1', '::1')
+      ORDER BY line_number
+
+  dns-authentication:
+    severity: error
+    title: Authentication based on DNS reverse lookup
+    labels:
+      - server
+      - security
+    comment: |
+      Reverse DNS is not reliable, can be out of your control, and generally,
+      just not a trusted input. That and people can spoof IPs anyway.
+    query: |
+      SELECT *
+      FROM pg_catalog.pg_hba_file_rules
+      WHERE address IS NOT NULL AND netmask IS NULL AND
+            lower(address) <> 'localhost' AND
+            address NOT ILIKE '%.localhost'
+      ORDER BY line_number
+
+  overcomplicated-authentication:
+    severity: notice
+    title: Authentication rules overly complex
+    labels:
+      - server
+      - security
+      - controversial
+    comment: |
+      Is arbitrary, but you probably don't want to support all possible auth
+      methods, have that many fancy per-subnet rules or per that many user
+      rules.
+    query: |
+      SELECT count(*)
+      FROM pg_catalog.pg_hba_file_rules
+      HAVING count(*) > 10
+
   no-columns:
     severity: error
     title: Tables without columns
