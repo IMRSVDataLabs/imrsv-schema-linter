@@ -1277,6 +1277,41 @@ rules:
       WHERE prosecdef
       ORDER BY 1, 2
 
+  # TODO: Split?
+  table-owner-overprivileged:
+    severity: warning
+    title: Table owned by overprivileged (e.g., SUPERUSER)
+    labels:
+      - security
+      - postgres
+    comment: |
+      If you do this, you can't as safely delegate the ability to modify the
+      schema (e.g., DB “migrations”).
+    params:
+      connlimit: 1
+    query: |
+      SELECT nspname AS schema_name,
+             relname AS table_name,
+             rolname AS table_owner,
+             rolsuper, rolcreaterole, rolcreatedb, rolreplication,
+             CASE
+               WHEN rolconnlimit > %(connlimit)s OR rolconnlimit = -1
+               THEN rolconnlimit
+             END AS rolconnlimit
+      FROM pg_catalog.pg_class
+      JOIN pg_namespace
+        ON pg_namespace.oid = pg_class.relnamespace
+      JOIN pg_roles
+        ON pg_roles.oid = pg_class.relowner
+      WHERE pg_namespace.nspname = 'public' AND
+            (pg_roles.rolsuper OR
+             pg_roles.rolcreaterole OR
+             pg_roles.rolcreatedb OR
+             pg_roles.rolreplication OR
+             pg_roles.rolconnlimit > %(connlimit)s OR
+             pg_roles.rolconnlimit = -1)
+      ORDER BY 1, 2
+
   unnamed-column:
     severity: error
     title: Unnamed column (?column?)
