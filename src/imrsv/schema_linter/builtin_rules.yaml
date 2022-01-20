@@ -1222,6 +1222,22 @@ rules:
       WHERE pg_description IS NULL
       ORDER BY 1, 2
 
+  uncommented-database:
+    severity: notice
+    title: Uncommented database
+    labels:
+      - postgres
+      - proprietary
+      - cosmetic
+    query: |
+      SELECT datname AS database_name
+      FROM pg_database
+      LEFT JOIN pg_description
+        ON pg_description.objoid = pg_database.oid
+      WHERE pg_description IS NULL AND
+            pg_database.datname NOT IN ('template0', 'template1', 'postgres')
+      ORDER BY 1
+
   quoted-schema-name:
     severity: warning
     title: Schema name that requires quoting
