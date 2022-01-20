@@ -1354,6 +1354,51 @@ rules:
             routine_name <> quote_ident(routine_name)
       ORDER BY 1, 2
 
+  # TODO: Handle standard UDTs used by a PG enum
+  unused-udt:
+    severity: warning
+    title: Unused user-defined type
+    labels:
+      - cosmetic
+    query: |
+      SELECT user_defined_type_schema AS schema_name,
+             user_defined_type_name AS udt_name,
+             user_defined_type_category AS udt_category
+      FROM information_schema.user_defined_types
+      LEFT JOIN (
+        SELECT udt_schema, udt_name
+        FROM information_schema.columns
+        UNION ALL
+        SELECT udt_schema, udt_name
+        FROM information_schema.routines
+        UNION ALL
+        SELECT udt_schema, udt_name
+        FROM information_schema.parameters
+        UNION ALL
+        SELECT udt_schema, udt_name
+        FROM information_schema.domains
+      ) AS udt_usage
+        ON (user_defined_types.user_defined_type_schema,
+            user_defined_types.user_defined_type_name) =
+           (udt_usage.udt_schema,
+            udt_usage.udt_name)
+      WHERE udt_usage IS NULL
+      ORDER BY 1, 2, 3
+
+  unused-enum:
+    severity: warning
+    title: Unused PG ENM
+    labels:
+      - cosmetic
+    query: |
+      SELECT typname AS enum_name
+      FROM pg_catalog.pg_type
+      LEFT JOIN pg_attribute
+        ON pg_type.oid = pg_attribute.atttypid
+      WHERE pg_attribute IS NULL AND
+            pg_type.typcategory = 'E'
+      ORDER BY 1
+
   # TODO: information_schema.routines instead
   security-definer-procedure:
     severity: notice
