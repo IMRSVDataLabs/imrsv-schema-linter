@@ -2,6 +2,7 @@ venv
 htmlcov
 .coverage
 *.egg-info
+.eggs/
 *.py[co]
 __pycache__
 .schema_linter.yaml
