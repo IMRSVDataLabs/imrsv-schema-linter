@@ -1,0 +1,23 @@
+*
+!bin/imrsv-schema-linter
+!src/imrsv/schema_linter/*.py
+!src/imrsv/schema_linter/*.yaml
+!MANIFEST.in
+!setup.py
+!requirements.txt
+!pyproject.toml
+# Yes, because they're embedded in the package.
+!LICENSE
+!README.md
+
+# TODO: Overlay files so these don't accidentally get used in the prod image.
+# CI
+!tests/*.py
+
+# Dev
+# TODO: pyproject.toml instead
+!.coveragerc
+!.coverage-extra_css.css
+!.flake8
+!mypy.ini
+!pytest.ini
