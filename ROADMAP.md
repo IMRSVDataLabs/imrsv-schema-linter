@@ -21,9 +21,11 @@
         + [X] Schemas
         + [ ] The current database
         + [X] Functions, procedures (yes, like a docstring)
+            - [ ] But not ones from extensions.
         + [ ] The other types at the notice level.
     * [ ] Duplicate relationships
     * [X] Disconnected table
+        + [ ] Except from extensions, e.g., `pg_stat_statements`
     * [ ] Unused UDT
         + [ ] Also enums, which aren't under `user_defined_types`.
     * [ ] `column1`, `column2` or `spouse1_id`, `spouse2_id`
@@ -38,6 +40,7 @@
         + [ ] Everything else, roles, constraints, domains, etc., everything in
               `information_schema`, `pg_catalog`, `pg_class`.
     * [X] All, all minus PK, or too many nullable
+        + [ ] Except from extensions
     * [ ] Table cycles
     * [ ] Table cycles, recursively
     * [X] Self-referencing
@@ -96,6 +99,30 @@
       DISA STIGs.
     * [ ] CIS benchmark or just recommend [Puppet/`pg_secured`][pg_secured] or
       [EasyAppSecurity/postgres-baseline][postgres-baseline]?
+    * [ ] Missing security-sensitive [§ 33.1.2 Parameter Key
+      Words][paramkeywords] in current connection string.
+        * [ ] `host` if `hostaddr` and should-TLS transport
+        * [ ] `channel_binding=require`, not default `prefer`
+        * [ ] No `tty`, ignored, meaningless
+        * [ ] `gssencmode=require` if set
+        * [ ] `sslmode` not `verify-full`
+        * [ ] No `requiressl`, deprecated
+        * [ ] Not `sslcompression`
+        * [ ] Permissions of `sslcert`
+        * [ ] Permissions of `sslkey`
+        * [ ] Permissions of `passfile`
+        * [ ] `passfile` unsupported for `zxcvbn`
+        * [ ] Weak password for `sslpassword` per zxcvbn
+        * [ ] No `sslrootcert`
+        * [ ] No `sslcrl`, perhaps `NOTICE` only to start.
+        * [ ] `requirepeer=postgres` if UNIX domain socket
+        * [ ] `ssl_min_protocol_version=TLSv1.3`, and notice on 1.2, error on 1.1 or lesser
+        * [ ] Warning `ssl_max_protocol_version`, error if ≤1.1
+        * [ ] `service` unsupported
+    * [ ] ITSP 40.062 crypto.
+- [ ] Set additional [libpq connection options][paramkeywords]:
+    * `application_name=imrsv-schema-linter`
+    * `target_session_attrs=read-only` if possible?
 - [ ] User config files.
 - [ ] Generic schema/table/column filtering.
 - [ ] Properly handle schemas instead of assuming `public`.
@@ -114,6 +141,8 @@
 - [ ] Rule filtering and selection based on rule attributes or a glob.
 - [ ] logfmt all logs, not just rule violations.
     * [ ] Also JSON format.
+- [ ] Override OpenSSL defaults with more secure ones in image, by default?
 
 [pg_secured]: https://forge.puppet.com/modules/enterprisemodules/pg_secured
 [postgres-baseline]: https://github.com/EasyAppSecurity/postgres-baseline
+[paramkeywords]: https://www.postgresql.org/docs/13/libpq-connect.html#LIBPQ-PARAMKEYWORDS "33.1.2. Parameter Key Words"
