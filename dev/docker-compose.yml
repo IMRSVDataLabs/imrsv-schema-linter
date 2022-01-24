@@ -1,0 +1,40 @@
+version: '3.7'
+
+# Dev-only.
+
+# TODO: secrets and PG TLS
+
+services:
+  linter:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: dev
+    image: imrsv-schema-linter:dev
+    read_only: true
+    depends_on:
+      - db
+    env_file: .env
+    environment:
+      PGHOST: db
+
+  db:
+    build:
+      context: postgres
+      dockerfile: Dockerfile
+      target: dev
+    image: imrsv-schema-linter-db:dev
+    read_only: true
+    volumes:
+      - type: volume
+        source: pgdata
+        target: /var/lib/postgresql/data
+        # Selectively allow read-only ONLY.
+        read_only: false
+      - type: tmpfs
+        target: /run/postgresql
+        read_only: false
+    env_file: postgres/.env
+
+volumes:
+  pgdata:
