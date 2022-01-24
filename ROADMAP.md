@@ -100,7 +100,7 @@
     * [ ] CIS benchmark or just recommend [Puppet/`pg_secured`][pg_secured] or
       [EasyAppSecurity/postgres-baseline][postgres-baseline]?
     * [ ] Missing security-sensitive [§ 33.1.2 Parameter Key
-      Words][paramkeywords] in current connection string.
+      Words][paramkeywords] or [env vars][pgenv] in current connection string.
         * [ ] `host` if `hostaddr` and should-TLS transport
         * [ ] `channel_binding=require`, not default `prefer`
         * [ ] No `tty`, ignored, meaningless
@@ -119,6 +119,7 @@
         * [ ] `ssl_min_protocol_version=TLSv1.3`, and notice on 1.2, error on 1.1 or lesser
         * [ ] Warning `ssl_max_protocol_version`, error if ≤1.1
         * [ ] `service` unsupported
+        * [ ] `sslsni=1`
     * [ ] ITSP 40.062 crypto.
 - [ ] Set additional [libpq connection options][paramkeywords]:
     * `application_name=imrsv-schema-linter`
@@ -146,3 +147,4 @@
 [pg_secured]: https://forge.puppet.com/modules/enterprisemodules/pg_secured
 [postgres-baseline]: https://github.com/EasyAppSecurity/postgres-baseline
 [paramkeywords]: https://www.postgresql.org/docs/13/libpq-connect.html#LIBPQ-PARAMKEYWORDS "33.1.2. Parameter Key Words"
+[pgenv]: https://www.postgresql.org/docs/current/libpq-envars.html
