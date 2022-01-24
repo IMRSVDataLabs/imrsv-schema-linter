@@ -1,0 +1,2 @@
+--exclude=htmlcov
+--exclude=.coverage-extra_css.css

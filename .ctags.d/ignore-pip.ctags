@@ -1,0 +1,4 @@
+--exclude=pip-ephem-wheel-cache-*
+--exclude=pip-install-*
+--exclude=pip-req-tracker-*
+--exclude=.eggs
