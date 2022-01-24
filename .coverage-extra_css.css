@@ -1,0 +1,7 @@
+#source .text {
+    max-width: 80em;
+}
+#source .text p span {
+    overflow: hidden;
+    white-space: pre-wrap;
+}

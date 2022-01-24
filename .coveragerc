@@ -1,0 +1,15 @@
+[run]
+branch = true
+source =
+    src
+    # Only if you absolutely need to test prod or otherwise non-editable (pip
+    # install -e) installations.
+    #venv/lib/python3.9/site-packages/imrsv/
+
+[report]
+sort = cover
+show_missing = True
+fail_under = 60
+
+[html]
+extra_css = .coverage-extra_css.css
