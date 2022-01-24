@@ -18,7 +18,7 @@ $(GRYPE_BIN):
 # Generate BOM—bill of materials, for use for prod RFCs.
 syft: $(SYFT_BIN)
 	@# Print container image BOM to stdout.
-	@syft packages docker:'$(IMAGE)'
+	@syft packages docker:'$(IMAGE_NAME)'
 syft-dev: $(SYFT_BIN)
 	@# Print git repo only BOM to stdout.
 	@# Scans package.json, Dockerfile, requirements.txt, etc.
@@ -29,10 +29,10 @@ syft-dev: $(SYFT_BIN)
 # TODO: Freedesktop user.mime_type = application/vnd.cyclonedx+json	xattr?
 sbom.json: $(SYFT_BIN)
 	@# Save container image to file named 'bom'.
-	@syft packages docker:'$(IMAGE)' > '$@'
+	@syft packages docker:'$(IMAGE_NAME)' > '$@'
 grype: $(GRYPE_BIN)
 	@# Print scan of container image vulnerabilities to stdout.
-	@grype docker:'$(IMAGE)' | tee grype.txt
+	@grype docker:'$(IMAGE_NAME)' | tee grype.txt
 grype-dev: $(GRYPE_BIN)
 	@# Print scan of source code repo vulnerabilities to stdout.
 	@# Scans package.json, Dockerfile, requirements.txt, etc.
@@ -48,7 +48,7 @@ ci-syft:
 	@# Save container image BOM to JSON file.
 	@# Has more metadata than make syft; links, source file, rule that
 	@# generated BOM item, etc.
-	@syft packages docker:'$(IMAGE)' -o json > artifacts/syft.json
+	@syft packages docker:'$(IMAGE_NAME)' -o json > artifacts/syft.json
 ci-grype:
 	@# Save container image vulnerability to JSON file.
 	@# Has more metadata than make grype; links, source file, rule that

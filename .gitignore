@@ -8,3 +8,4 @@ __pycache__
 .schema_linter.yaml
 tags
 sbom.json
+grype.txt
