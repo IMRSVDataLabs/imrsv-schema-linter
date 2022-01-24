@@ -52,7 +52,7 @@ The linter does not verify SQL code in any way, nor does it understand how, how
 often, and how much of which data in particular you access, much less
 its “volume, variety, and velocity”.
 
-Please `imrsv-schema-linter -f rules` for current rules, and read the
+Please `imrsv-schema-linter rules` for current rules, and read the
 [roadmap](./ROADMAP.md) for future rules.
 
 - It's currently alpha.
