@@ -6,3 +6,4 @@ htmlcov
 __pycache__
 .schema_linter.yaml
 tags
+sbom.json
