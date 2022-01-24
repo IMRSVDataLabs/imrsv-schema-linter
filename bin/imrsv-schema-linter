@@ -10,7 +10,7 @@ Connect to a PostgreSQL DB and lint schema, and only the schema
 from contextlib import contextmanager, redirect_stdout
 from typing import List, Iterator
 from sys import stdout
-from os import isatty
+from os import isatty, environ
 import subprocess
 import argparse
 import logging
@@ -54,7 +54,11 @@ argument_parser.add_argument(
 @contextmanager
 def autopage() -> Iterator[None]:
     if isatty(stdout.fileno()):
-        with subprocess.Popen(['less', '-FRXS'],
+        pager = environ.get('PAGER', 'less')
+        if pager == 'less' and 'LESS' not in environ:
+            # Drop the X in Alpine or other busybox distros.
+            environ['LESS'] = 'FRXS'
+        with subprocess.Popen([pager],
                               stdin=subprocess.PIPE,
                               universal_newlines=True) as less:
             with redirect_stdout(less.stdin):

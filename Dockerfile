@@ -81,6 +81,9 @@ COPY --from=builder-prod --chown=user /home/user/linter /home/user/linter
 # No --reload, and no log-level trace in prod.
 CMD ["imrsv-schema-linter", "-f", "logfmt", "lint"]
 # TODO? ENV PYTHONOPTIMIZE=2
+ENV PAGER=less
+# busybox less doesn't do -X.
+ENV LESS=FRS
 
 
 FROM builder AS builder-ci
