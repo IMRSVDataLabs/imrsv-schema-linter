@@ -240,7 +240,7 @@ rules:
              array_agg(ordinal_position ORDER BY ordinal_position)
                AS ordinal_positions
       FROM (
-        SELECT c.table_schema, c.table_name, c.column_name, c.ordinal_position,
+        SELECT c.table_schema::text, c.table_name::text, c.column_name::text, c.ordinal_position::int,
                count(*) OVER w
         FROM information_schema.columns
           AS c
@@ -900,15 +900,15 @@ rules:
       There have definitely been some incorrect ones found this way.
       Warn by default for now. Walk it back later.
     query: |
-      SELECT min(kcu1.table_name) AS referencing_table,
+      SELECT min(kcu1.table_name::text) AS referencing_table,
              array_agg(kcu1.column_name::text) AS referencing_columns,
-             min(kcu2.table_name) AS referenced_table,
+             min(kcu2.table_name::text) AS referenced_table,
              array_agg(kcu2.column_name::text) AS referenced_columns,
-             rc.constraint_name AS constraint_name,
-             array_agg(referencing_columns.column_name)
+             rc.constraint_name::text AS constraint_name,
+             array_agg(referencing_columns.column_name::text)
                FILTER (WHERE referencing_columns.is_nullable = 'YES')
                AS referencing_nullable,
-             array_agg(referenced_columns.column_name)
+             array_agg(referenced_columns.column_name::text)
                FILTER (WHERE referenced_columns.is_nullable = 'YES')
                AS referenced_nullable
       FROM information_schema.key_column_usage
@@ -942,9 +942,9 @@ rules:
       This can bad because you can have practical duplicates if any of these
       columns is NULLable.
     query: |
-      SELECT table_constraints.table_schema AS schema_name,
-             table_constraints.constraint_name,
-             array_agg(columns.column_name) AS nullable_columns
+      SELECT table_constraints.table_schema::text AS schema_name,
+             table_constraints.constraint_name::text,
+             array_agg(columns.column_name::text) AS nullable_columns
       FROM information_schema.table_constraints
       INNER JOIN information_schema.key_column_usage
         ON table_constraints.constraint_name = key_column_usage.constraint_name
@@ -969,8 +969,8 @@ rules:
       Possibly not what you want. Depends on your tree or other datastructure
       design pattern.
     query: |
-      SELECT fkey.table_schema AS schema_name, fkey.table_name,
-             fkey.constraint_name
+      SELECT fkey.table_schema::text AS schema_name, fkey.table_name::text,
+             fkey.constraint_name::text
       FROM information_schema.referential_constraints
         AS rc
       JOIN information_schema.table_constraints
@@ -997,7 +997,7 @@ rules:
         - schema_migrations  # Ruby Rails
       additional_known: []
     query: |
-      SELECT DISTINCT tables.table_schema AS schema_name, tables.table_name
+      SELECT DISTINCT tables.table_schema::text AS schema_name, tables.table_name::text
       FROM information_schema.tables
       LEFT JOIN (
         SELECT DISTINCT tc.table_schema, tc.table_name
@@ -1023,7 +1023,7 @@ rules:
       - controversial
       - imrsv
     query: |
-      SELECT routine_schema, routine_name, routine_type, external_language
+      SELECT routine_schema::text, routine_name::text, routine_type::text, external_language::text
       FROM information_schema.routines
       WHERE external_language NOT IN ('SQL', 'PLPGSQL', 'C', 'INTERNAL')
       ORDER BY 1, 2, 3, 4
@@ -1138,8 +1138,8 @@ rules:
     comment: |
       May not be relevant for small reference tables, though those really
       should have a UNIQUE or PRIMARY KEY.
-    query:
-      SELECT table_schema AS schema_name, table_name
+    query: |
+      SELECT table_schema::text AS schema_name, table_name::text
       FROM information_schema.tables
       JOIN pg_namespace
         ON table_schema = pg_namespace.nspname
@@ -1209,7 +1209,7 @@ rules:
       # Trying to be liberal enough so as to not trigger for most real users.
       column_max: 50
     query: |
-      SELECT table_schema AS schema_name, table_name, count(*)
+      SELECT table_schema::text AS schema_name, table_name::text, count(*)
       FROM information_schema.columns
       WHERE table_schema = 'public'
       GROUP BY 1, 2
@@ -1295,7 +1295,7 @@ rules:
       # Requires PG function quote_ident()
       - postgres
     query: |
-      SELECT catalog_name AS database_name
+      SELECT catalog_name::text AS database_name
       FROM information_schema.information_schema_catalog_name
       WHERE catalog_name <> quote_ident(catalog_name)
       ORDER BY 1
@@ -1308,7 +1308,7 @@ rules:
       # Requires PG function quote_ident()
       - postgres
     query: |
-      SELECT schema_name
+      SELECT schema_name::text
       FROM information_schema.schemata
       -- TODO: Schema filter
       WHERE schema_name <> quote_ident(schema_name)
@@ -1321,7 +1321,7 @@ rules:
       - cosmetic
       - postgres
     query: |
-      SELECT table_schema AS schema_name, table_name
+      SELECT table_schema::text AS schema_name, table_name::text
       FROM information_schema.tables
       WHERE table_schema = 'public' AND
             table_name <> quote_ident(table_name)
@@ -1334,7 +1334,7 @@ rules:
       - cosmetic
       - postgres
     query: |
-      SELECT table_schema AS schema_name, table_name, column_name
+      SELECT table_schema::text AS schema_name, table_name::text, column_name::text
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
             column_name <> quote_ident(column_name)
@@ -1464,7 +1464,7 @@ rules:
       - cosmetic
       - correctness
     query: |
-      SELECT table_schema AS schema_name, table_name, column_name
+      SELECT table_schema::text AS schema_name, table_name::text, column_name::text
       FROM information_schema.columns
       WHERE table_schema = 'public' AND
             column_name = '?column?'
