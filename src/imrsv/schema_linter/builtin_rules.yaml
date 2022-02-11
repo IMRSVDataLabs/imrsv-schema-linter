@@ -175,7 +175,7 @@ rules:
     query: |
       SELECT table_schema AS schema_name, table_name
       FROM information_schema.columns
-      WHERE table_schema = 'public'
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
       GROUP BY table_schema, table_name
       HAVING count(*) = 1
       ORDER BY 1, 2
@@ -205,7 +205,7 @@ rules:
           ON (columns.table_schema, columns.table_name) =
              (tables.table_schema, tables.table_name) AND
              tables.table_type = 'BASE TABLE' AND
-             tables.table_schema = 'public'
+             tables.table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
         LEFT JOIN information_schema.table_constraints
           AS tc
           ON (columns.table_schema, columns.table_name) =
@@ -240,7 +240,7 @@ rules:
              array_agg(ordinal_position ORDER BY ordinal_position)
                AS ordinal_positions
       FROM (
-        SELECT c.table_schema, c.table_name, c.column_name, c.ordinal_position,
+        SELECT c.table_schema::text, c.table_name::text, c.column_name::text, c.ordinal_position::int,
                count(*) OVER w
         FROM information_schema.columns
           AS c
@@ -502,7 +502,7 @@ rules:
                     ' etc.'))
         AS betters(old, new, reason)
         ON btrim(column_default) LIKE betters.old
-      WHERE table_schema = 'public'
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
       ORDER BY 1, 2, 3, 4
 
   # TODO: Not use pg_statio_all_tables.
@@ -523,7 +523,7 @@ rules:
         AS c
         ON c.table_schema = st.schemaname AND
            c.table_name = st.relname AND
-           c.table_schema = 'public'
+           c.table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
       LEFT OUTER JOIN pg_catalog.pg_description
         AS pgd
         ON pgd.objoid = st.relid AND
@@ -552,7 +552,7 @@ rules:
     query: |
       SELECT table_schema AS schema_name, table_name, count(*)
       FROM information_schema.columns
-      WHERE table_schema = 'public' AND
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             table_catalog = 'api'
       GROUP BY table_schema, table_name
       ORDER BY 1, 2
@@ -598,7 +598,7 @@ rules:
     query: |
       SELECT table_schema AS schema_name, table_name, column_name
       FROM information_schema.columns
-      WHERE table_schema = 'public' AND
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             is_nullable = 'YES' AND
             column_name IN ('created_at', 'updated_at', 'last_modified_at')
       ORDER BY 1, 2, 3
@@ -614,7 +614,7 @@ rules:
     query: |
       SELECT table_schema AS schema_name, table_name, column_name
       FROM information_schema.columns
-      WHERE table_schema = 'public' AND
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             is_nullable = 'YES' AND
             data_type = 'boolean'
       ORDER BY 1, 2, 3
@@ -654,7 +654,7 @@ rules:
              (type_columns.table_schema,
                type_columns.table_name,
                type_columns.column_name)
-      WHERE columns.table_schema = 'public' AND
+      WHERE columns.table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             columns.column_name LIKE '%\_id' AND
             key_column_usage.column_name IS NULL
       ORDER BY columns.table_name, columns.column_name
@@ -685,7 +685,7 @@ rules:
              (constraint_column_usage.table_schema,
               constraint_column_usage.table_name,
               constraint_column_usage.column_name)
-      WHERE columns.table_schema = 'public' AND
+      WHERE columns.table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             (columns.column_name LIKE '%\_id' OR
              key_column_usage.position_in_unique_constraint IS NOT NULL)
       GROUP BY columns.table_name, columns.column_name
@@ -729,7 +729,7 @@ rules:
           ON table_class.relnamespace = pg_namespace.oid
       INNER JOIN pg_stat_user_tables
           ON pg_stat_user_tables.relid = table_class.oid
-      WHERE pg_namespace.nspname = 'public'
+      WHERE pg_namespace.nspname NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
       GROUP BY schema_name, table_name, index_name
       HAVING count(*) > 1
       ORDER BY schema_name, table_name, index_name
@@ -747,7 +747,7 @@ rules:
       WHERE idx_scan = 0 AND
             idx_tup_read = 0 AND
             idx_tup_fetch = 0 AND
-            schemaname = 'public'
+            schemaname NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
       ORDER BY relname, indexrelname
 
   forbidden-types:
@@ -778,7 +778,7 @@ rules:
       SELECT table_schema AS schema_name, table_name,
              column_name, data_type, udt_name
       FROM information_schema.columns
-      WHERE table_schema = 'public' AND
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             (data_type = ANY(%(data_types)s) OR
              data_type = ANY(%(data_types_extra)s) OR
              udt_name = ANY(%(udt_names)s)) AND
@@ -804,20 +804,18 @@ rules:
         - anyarray
         - anyc
       udt_names: []
-      data_types_not: []
+      data_types_not: ['jsonb']
       udt_names_not: []
       allow_pg_internal: false
     query: |
       SELECT table_schema AS schema_name, table_name,
              column_name, data_type, udt_name
       FROM information_schema.columns
-      WHERE table_schema = 'public' AND
-
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             ((data_type = ANY(%(data_types)s) OR
               udt_name = ANY(%(udt_names)s)) AND
              NOT (data_type = ANY(%(data_types_not)s) OR
                   udt_name = ANY(%(udt_names_not)s)) OR
-
              NOT %(allow_pg_internal)s AND data_type LIKE 'pg_%%')
       ORDER BY table_name, column_name
 
@@ -836,8 +834,10 @@ rules:
              column_name, character_maximum_length
       FROM information_schema.columns
       WHERE character_maximum_length IS NOT NULL AND
-            table_schema = 'public'
+            table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
       ORDER BY 1, 2, 3
+      
+   
 
   nullable-columns:
     severity: notice
@@ -857,7 +857,7 @@ rules:
     query: |
       SELECT table_schema AS schema_name, table_name, column_name
       FROM information_schema.columns
-      WHERE table_schema = 'public' AND
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             is_nullable = 'YES' AND
             NOT table_name = ANY(%(tables)s) AND
             NOT (table_name, column_name) = ANY(%(table_columns)s) AND
@@ -875,7 +875,7 @@ rules:
       Probably wrong or brittle, other than requiring seed data, assuming
       hardcoded IDs in seed data, or that you use semantic keys.
     query: |
-      SELECT columns.table_schema AS schema_name,
+      SELECT DISTINCT columns.table_schema AS schema_name,
              columns.table_name,
              columns.column_name,
              columns.is_nullable,
@@ -884,9 +884,66 @@ rules:
       INNER JOIN information_schema.key_column_usage
           ON columns.column_name = key_column_usage.column_name AND
             key_column_usage.position_in_unique_constraint IS NOT NULL
-      WHERE columns.table_schema = 'public' AND
+      WHERE columns.table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             columns.column_default IS NOT NULL
       ORDER BY columns.table_name, columns.column_name
+
+  duplicate-foreign-keys:
+    severity: error
+    title: Duplicate foreign keys
+    labels:
+      - correctness
+    comment: |
+      Duplicate foreign keys always cause performance issues.
+    query: |
+      SELECT
+          *
+        FROM
+          (
+            SELECT
+              count(*) AS duplicate_count,
+              pclsc.relname AS child_table,
+              pac.attname AS child_column,
+              pclsp.relname AS parent_table,
+              pap.attname AS parent_column,
+              nspname AS schema_name
+            FROM
+              (
+                SELECT
+                  connamespace,
+                  conname,
+                  UNNEST(conkey) AS "conkey",
+                  UNNEST(confkey)
+                  AS "confkey" ,
+                  conrelid,
+                  confrelid,
+                  contype
+                FROM
+                  pg_constraint
+              ) pc
+            JOIN pg_namespace pn ON
+              pc.connamespace = pn.oid
+            JOIN pg_class pclsc ON
+              pc.conrelid = pclsc.oid
+            JOIN pg_class pclsp ON
+              pc.confrelid = pclsp.oid
+            JOIN pg_attribute pac ON
+              pc.conkey = pac.attnum
+              AND pac.attrelid = pclsc.oid
+            JOIN pg_attribute pap ON
+              pc.confkey = pap.attnum
+              AND pap.attrelid = pclsp.oid
+            GROUP BY
+              pclsc.relname,
+              pac.attname,
+              pclsp.relname,
+              pap.attname,
+              nspname
+            ORDER BY
+              pclsc.relname
+          )
+        WHERE
+          duplicate_count > 1
 
   nullable-keys:
     severity: warning
@@ -900,15 +957,15 @@ rules:
       There have definitely been some incorrect ones found this way.
       Warn by default for now. Walk it back later.
     query: |
-      SELECT min(kcu1.table_name) AS referencing_table,
+      SELECT min(kcu1.table_name::text) AS referencing_table,
              array_agg(kcu1.column_name::text) AS referencing_columns,
-             min(kcu2.table_name) AS referenced_table,
+             min(kcu2.table_name::text) AS referenced_table,
              array_agg(kcu2.column_name::text) AS referenced_columns,
-             rc.constraint_name AS constraint_name,
-             array_agg(referencing_columns.column_name)
+             rc.constraint_name::text AS constraint_name,
+             array_agg(referencing_columns.column_name::text)
                FILTER (WHERE referencing_columns.is_nullable = 'YES')
                AS referencing_nullable,
-             array_agg(referenced_columns.column_name)
+             array_agg(referenced_columns.column_name::text)
                FILTER (WHERE referenced_columns.is_nullable = 'YES')
                AS referenced_nullable
       FROM information_schema.key_column_usage
@@ -942,9 +999,9 @@ rules:
       This can bad because you can have practical duplicates if any of these
       columns is NULLable.
     query: |
-      SELECT table_constraints.table_schema AS schema_name,
-             table_constraints.constraint_name,
-             array_agg(columns.column_name) AS nullable_columns
+      SELECT table_constraints.table_schema::text AS schema_name,
+             table_constraints.constraint_name::text,
+             array_agg(columns.column_name::text) AS nullable_columns
       FROM information_schema.table_constraints
       INNER JOIN information_schema.key_column_usage
         ON table_constraints.constraint_name = key_column_usage.constraint_name
@@ -969,8 +1026,8 @@ rules:
       Possibly not what you want. Depends on your tree or other datastructure
       design pattern.
     query: |
-      SELECT fkey.table_schema AS schema_name, fkey.table_name,
-             fkey.constraint_name
+      SELECT fkey.table_schema::text AS schema_name, fkey.table_name::text,
+             fkey.constraint_name::text
       FROM information_schema.referential_constraints
         AS rc
       JOIN information_schema.table_constraints
@@ -997,7 +1054,7 @@ rules:
         - schema_migrations  # Ruby Rails
       additional_known: []
     query: |
-      SELECT DISTINCT tables.table_schema AS schema_name, tables.table_name
+      SELECT DISTINCT tables.table_schema::text AS schema_name, tables.table_name::text
       FROM information_schema.tables
       LEFT JOIN (
         SELECT DISTINCT tc.table_schema, tc.table_name
@@ -1011,7 +1068,7 @@ rules:
       ) AS fked
         ON (tables.table_schema, tables.table_name) =
            (fked.table_schema, fked.table_name)
-      WHERE fked IS NULL AND tables.table_schema = 'public' AND
+      WHERE fked IS NULL AND tables.table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             -- FIXME: Doesn't work
             tables.table_name <> ALL(%(known_disconnected)s)
       ORDER BY 1, 2
@@ -1023,7 +1080,7 @@ rules:
       - controversial
       - imrsv
     query: |
-      SELECT routine_schema, routine_name, routine_type, external_language
+      SELECT routine_schema::text, routine_name::text, routine_type::text, external_language::text
       FROM information_schema.routines
       WHERE external_language NOT IN ('SQL', 'PLPGSQL', 'C', 'INTERNAL')
       ORDER BY 1, 2, 3, 4
@@ -1138,18 +1195,31 @@ rules:
     comment: |
       May not be relevant for small reference tables, though those really
       should have a UNIQUE or PRIMARY KEY.
-    query:
-      SELECT table_schema AS schema_name, table_name
-      FROM information_schema.tables
-      JOIN pg_namespace
-        ON table_schema = pg_namespace.nspname
-      JOIN pg_class
-        ON pg_class.relnamespace = pg_namespace.oid AND
-           pg_class.relname = table_name
-      LEFT JOIN pg_index ON indrelid = pg_class.oid
-      WHERE pg_index IS NULL AND
-            table_schema = 'public'
-      ORDER BY 1, 2
+    query: |
+      SELECT
+          table_schema::TEXT AS schema_name,
+          table_name::TEXT
+        FROM
+          information_schema.tables
+        JOIN pg_namespace
+                ON
+          table_schema = pg_namespace.nspname
+        JOIN pg_class
+                ON
+          pg_class.relnamespace = pg_namespace.oid
+          AND
+                   pg_class.relname = table_name
+        LEFT JOIN pg_index ON
+          indrelid = pg_class.oid
+        WHERE
+          pg_index IS NULL
+          AND 
+              table_schema NOT IN (
+            'dbo', 'information_schema', 'pg_catalog', 'sys'
+          )
+        ORDER BY
+          1,
+          2
 
   # TODO: Group by predicate (indpred) too.
   # TODO: Group by expression indexes (indexprs) too.
@@ -1166,33 +1236,65 @@ rules:
       - proprietary
       - postgres
       - performance
-    query:
-      SELECT nspname AS schema_name,
-             relname AS table_name,
-             min(attnames) AS table_columns,
-             min(indnames) AS index_names
-      FROM (SELECT pg_index.indexrelid, nspname, pg_class.relname,
-                   array_agg(attname
-                             ORDER BY attname)
-                     AS attnames,
-                   array_agg(coln.attkey::smallint
-                             ORDER BY coln.attkey::smallint)
-                     AS attkeys,
-                   array_agg(indclass.relname)
-                     AS indnames
-            FROM pg_index
-            JOIN pg_class ON pg_index.indrelid = pg_class.oid
-            JOIN pg_namespace ON relnamespace = pg_namespace.oid
-            JOIN pg_attribute ON attrelid = pg_class.oid
-            JOIN LATERAL regexp_split_to_table(int2vectorout(indkey)::text, ' ')
-              AS coln(attkey)
-              ON coln.attkey::smallint = pg_attribute.attnum
-            JOIN pg_class AS indclass ON indclass.oid = indexrelid
-            WHERE nspname = 'public'
-            GROUP BY 1, 2, 3) q
-      GROUP BY 1, 2
-      HAVING count(*) > 1
-      ORDER BY 1, 2, 3
+    query: |
+      SELECT
+          *
+        FROM
+          (
+            SELECT
+              nspname AS schema_name,
+                     relname AS table_name,
+                     min(attnames) AS table_columns,
+                     min(indnames) AS index_names
+            FROM
+              (
+                SELECT
+                  pg_index.indexrelid,
+                  nspname,
+                  pg_class.relname,
+                           array_agg(attname
+                                     ORDER BY attname)
+                             AS attnames,
+                           array_agg(coln.attkey::SMALLINT
+                                     ORDER BY coln.attkey::SMALLINT)
+                             AS attkeys,
+                           array_agg(indclass.relname)
+                             AS indnames
+                FROM
+                  pg_index
+                JOIN pg_class ON
+                  pg_index.indrelid = pg_class.oid
+                JOIN pg_namespace ON
+                  relnamespace = pg_namespace.oid
+                JOIN pg_attribute ON
+                  attrelid = pg_class.oid
+                JOIN LATERAL regexp_split_to_table(int2vectorout(indkey)::TEXT, ' ')
+                      AS coln(attkey)
+                      ON
+                  coln.attkey::SMALLINT = pg_attribute.attnum
+                JOIN pg_class AS indclass ON
+                  indclass.oid = indexrelid
+                WHERE
+                  nspname NOT IN (
+                    'dbo', 'information_schema', 'pg_catalog', 'sys'
+                  )
+                GROUP BY
+                  1,
+                  2,
+                  3
+              ) q
+            GROUP BY
+              1,
+              2
+            HAVING
+              count(*) > 1
+            ORDER BY
+              1,
+              2,
+              3
+          )
+        WHERE
+          CARDINALITY(index_names) > 1
 
   too-many-columns:
     severity: notice
@@ -1209,9 +1311,9 @@ rules:
       # Trying to be liberal enough so as to not trigger for most real users.
       column_max: 50
     query: |
-      SELECT table_schema AS schema_name, table_name, count(*)
+      SELECT table_schema::text AS schema_name, table_name::text, count(*)
       FROM information_schema.columns
-      WHERE table_schema = 'public'
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
       GROUP BY 1, 2
       HAVING count(*) > %(column_max)s
       ORDER BY 1, 2
@@ -1230,7 +1332,7 @@ rules:
       FROM pg_namespace
       LEFT JOIN pg_description
         ON pg_description.objoid = pg_namespace.oid
-      WHERE nspname = 'public' AND
+      WHERE nspname NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             pg_description IS NULL
       ORDER BY 1
 
@@ -1247,7 +1349,7 @@ rules:
       FROM pg_class
       JOIN pg_namespace
         ON pg_class.relnamespace = pg_namespace.oid AND
-           pg_namespace.nspname = 'public'
+           pg_namespace.nspname NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
       LEFT JOIN pg_description
         ON pg_description.objoid = pg_namespace.oid
       WHERE pg_description IS NULL
@@ -1266,7 +1368,7 @@ rules:
       FROM pg_proc
       JOIN pg_namespace
         ON pg_namespace.oid = pg_proc.pronamespace AND
-           pg_namespace.nspname = 'public'
+           pg_namespace.nspname NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
       LEFT JOIN pg_description
         ON pg_description.objoid = pg_proc.oid
       WHERE pg_description IS NULL
@@ -1295,7 +1397,7 @@ rules:
       # Requires PG function quote_ident()
       - postgres
     query: |
-      SELECT catalog_name AS database_name
+      SELECT catalog_name::text AS database_name
       FROM information_schema.information_schema_catalog_name
       WHERE catalog_name <> quote_ident(catalog_name)
       ORDER BY 1
@@ -1308,7 +1410,7 @@ rules:
       # Requires PG function quote_ident()
       - postgres
     query: |
-      SELECT schema_name
+      SELECT schema_name::text
       FROM information_schema.schemata
       -- TODO: Schema filter
       WHERE schema_name <> quote_ident(schema_name)
@@ -1316,14 +1418,14 @@ rules:
 
   quoted-table-name:
     severity: warning
-    title: Column name that requires quoting
+    title: Table name that requires quoting
     labels:
       - cosmetic
       - postgres
     query: |
-      SELECT table_schema AS schema_name, table_name
+      SELECT table_schema::text AS schema_name, table_name::text
       FROM information_schema.tables
-      WHERE table_schema = 'public' AND
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             table_name <> quote_ident(table_name)
       ORDER BY 1, 2
 
@@ -1334,9 +1436,9 @@ rules:
       - cosmetic
       - postgres
     query: |
-      SELECT table_schema AS schema_name, table_name, column_name
+      SELECT table_schema::text AS schema_name, table_name::text, column_name::text
       FROM information_schema.columns
-      WHERE table_schema = 'public' AND
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             column_name <> quote_ident(column_name)
       ORDER BY 1, 2, 3
 
@@ -1350,7 +1452,7 @@ rules:
       SELECT routine_schema AS procedure_schema,
              routine_name
       FROM information_schema.routines
-      WHERE routine_schema = 'public' AND
+      WHERE routine_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             routine_name <> quote_ident(routine_name)
       ORDER BY 1, 2
 
@@ -1413,7 +1515,7 @@ rules:
       FROM pg_proc
       JOIN pg_namespace
         ON pg_namespace.oid = pg_proc.pronamespace AND
-           pg_namespace.nspname = 'public'
+           pg_namespace.nspname NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' )
       JOIN pg_roles
         ON pg_roles.oid = pg_proc.proowner
       WHERE prosecdef
@@ -1446,7 +1548,7 @@ rules:
         ON pg_namespace.oid = pg_class.relnamespace
       JOIN pg_roles
         ON pg_roles.oid = pg_class.relowner
-      WHERE pg_namespace.nspname = 'public' AND
+      WHERE pg_namespace.nspname NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             (pg_roles.rolsuper OR
              pg_roles.rolcreaterole OR
              pg_roles.rolcreatedb OR
@@ -1464,8 +1566,8 @@ rules:
       - cosmetic
       - correctness
     query: |
-      SELECT table_schema AS schema_name, table_name, column_name
+      SELECT table_schema::text AS schema_name, table_name::text, column_name::text
       FROM information_schema.columns
-      WHERE table_schema = 'public' AND
+      WHERE table_schema NOT IN ( 'dbo', 'information_schema', 'pg_catalog', 'sys' ) AND
             column_name = '?column?'
       ORDER BY 1, 2, 3
